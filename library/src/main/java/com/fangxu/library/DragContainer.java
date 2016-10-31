@@ -4,7 +4,6 @@ import android.content.Context;
 import android.support.annotation.IntDef;
 import android.support.v4.view.GestureDetectorCompat;
 import android.util.AttributeSet;
-import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -30,10 +29,11 @@ public class DragContainer extends ViewGroup {
 
     private int orientation;
 
+    private int containerWidth, containerHeight;
+    private float downY;
+
     private View mainView;
     private DragFooterView dragFooterView;
-
-    private GestureDetectorCompat gestureDetectorCompat;
 
     public DragContainer(Context context) {
         this(context, null);
@@ -50,8 +50,6 @@ public class DragContainer extends ViewGroup {
 
     private void init(Context context) {
         setOrientation(BOTTOM);
-
-        gestureDetectorCompat = new GestureDetectorCompat(getContext(), new GestureListener());
     }
 
     @FooterOrientation
@@ -117,13 +115,54 @@ public class DragContainer extends ViewGroup {
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         checkChildren();
 
-        mainView.layout(0, 0, getMeasuredWidth(), getMeasuredHeight());
+        mainView.layout(0, 0, containerWidth, containerHeight);
         layoutFooter(changed, l, r, t, b);
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        return gestureDetectorCompat.onTouchEvent(event);
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                downY = event.getY();
+                break;
+            case MotionEvent.ACTION_MOVE:
+                float dy = event.getY() - downY;
+                setMainView(0, (int)dy, containerWidth, containerHeight + (int)dy);
+                if (Math.abs(dy) < dragFooterView.getHeight()) {
+                    setFooterView(0, containerHeight + (int)dy, containerWidth, containerHeight + dragFooterView.getHeight() + (int)dy);
+                } else {
+                    setFooterView(0, containerHeight - dragFooterView.getHeight(), containerWidth, containerHeight);
+                    dragFooterView.updateController((int)dy - dragFooterView.getHeight());
+                }
+                break;
+            case MotionEvent.ACTION_UP:
+                setMainView(0, 0, containerWidth, containerHeight);
+                setFooterView(0, containerHeight, dragFooterView.getWidth(), containerHeight + dragFooterView.getHeight());
+                dragFooterView.reset();
+                break;
+        }
+        return true;
+    }
+
+    private void setMainView(int left, int top, int right, int bottom) {
+        mainView.setLeft(left);
+        mainView.setTop(top);
+        mainView.setRight(right);
+        mainView.setBottom(bottom);
+    }
+
+    private void setFooterView(int left, int top, int right, int bottom) {
+        dragFooterView.setLeft(left);
+        dragFooterView.setTop(top);
+        dragFooterView.setRight(right);
+        dragFooterView.setBottom(bottom);
+    }
+
+    @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+        containerWidth = w;
+        containerHeight = h;
     }
 
     private void checkChildren() {
@@ -149,39 +188,6 @@ public class DragContainer extends ViewGroup {
             case BOTTOM:
                 dragFooterView.layout(0, getMeasuredHeight(), footerWidth, getMeasuredHeight() + footerHeight);
                 break;
-        }
-    }
-
-    private static class GestureListener implements GestureDetector.OnGestureListener {
-        @Override
-        public boolean onDown(MotionEvent e) {
-            return false;
-        }
-
-        @Override
-        public void onShowPress(MotionEvent e) {
-
-        }
-
-        @Override
-        public boolean onSingleTapUp(MotionEvent e) {
-            return false;
-        }
-
-        @Override
-        public void onLongPress(MotionEvent e) {
-
-        }
-
-        @Override
-        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            return false;
-        }
-
-        @Override
-        public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-
-            return false;
         }
     }
 }
