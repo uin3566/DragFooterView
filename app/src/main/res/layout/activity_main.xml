@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent">
+
+    <com.fangxu.library.DragContainer
+        android:layout_width="300dp"
+        android:layout_height="300dp"
+        android:layout_centerInParent="true"
+        android:background="#0055ff">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#ff6600"
+            android:gravity="center"
+            android:text="MainView"/>
+
+        <com.fangxu.library.DragFooterView
+            android:layout_width="match_parent"
+            android:layout_height="30dp"
+            android:background="#66fff0"
+            android:gravity="center"
+            android:text="footerView"/>
+
+    </com.fangxu.library.DragContainer>
+
+</RelativeLayout>
