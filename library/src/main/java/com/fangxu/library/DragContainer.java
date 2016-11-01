@@ -1,13 +1,12 @@
 package com.fangxu.library;
 
-import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.support.annotation.IntDef;
@@ -40,21 +39,22 @@ public class DragContainer extends ViewGroup {
 
     private View contentView;
     private int orientation;
+    private boolean shouldResetContentView;
 
     private static final int DEFAULT_FOOTER_HEIGHT = 90;
     private static final int DEFAULT_BEZIER_DRAG_THRESHOLD = 400;
 
     private int containerWidth, containerHeight;
-    private float downY;
+    private float downX, downY;
     private int footerHeight = DEFAULT_FOOTER_HEIGHT;
-    private float dragDy;
+    private float dragDx, dragDy;
 
     private Paint rectPaint;
     private Paint bezierPaint;
     private Paint textPaint;
 
     private Path bezierPath;
-    private RectF bottomRectF;
+    private RectF dragRect;
 
     private Drawable iconDrawable;
 
@@ -68,11 +68,13 @@ public class DragContainer extends ViewGroup {
 
     public DragContainer(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        init(context);
+        init(context, attrs);
     }
 
-    private void init(Context context) {
-        setOrientation(BOTTOM);
+    private void init(Context context, AttributeSet attrs) {
+        TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.DragContainer);
+        orientation = ta.getInteger(R.styleable.DragContainer_dc_orientation, BOTTOM);
+        ta.recycle();
 
         rectPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         rectPaint.setColor(Color.YELLOW);
@@ -89,7 +91,7 @@ public class DragContainer extends ViewGroup {
         textPaint.setTextAlign(Paint.Align.CENTER);
         textPaint.setTextSize(30);
 
-        bottomRectF = new RectF();
+        dragRect = new RectF();
     }
 
     @FooterOrientation
@@ -135,6 +137,13 @@ public class DragContainer extends ViewGroup {
     }
 
     @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+        containerWidth = w;
+        containerHeight = h;
+    }
+
+    @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         checkChildren();
         contentView.layout(0, 0, containerWidth, containerHeight);
@@ -144,12 +153,20 @@ public class DragContainer extends ViewGroup {
     public boolean onTouchEvent(MotionEvent event) {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
+                dragDx = 0;
                 dragDy = 0;
+                downX = event.getX();
                 downY = event.getY();
                 break;
             case MotionEvent.ACTION_MOVE:
-                dragDy = event.getY() - downY;
-                setContentView(0, (int) dragDy, containerWidth, containerHeight + (int) dragDy);
+                if (orientation == LEFT || orientation == RIGHT) {
+                    dragDx = event.getX() - downX;
+                    setContentView((int) dragDx, 0, containerWidth + (int) dragDx, containerHeight);
+                }
+                if (orientation == TOP || orientation == BOTTOM) {
+                    dragDy = event.getY() - downY;
+                    setContentView(0, (int) dragDy, containerWidth, containerHeight + (int) dragDy);
+                }
                 break;
             case MotionEvent.ACTION_UP:
                 resetContentView();
@@ -168,12 +185,37 @@ public class DragContainer extends ViewGroup {
     }
 
     private void drawRect(Canvas canvas) {
-        if (Math.abs(dragDy) >= footerHeight) {
-            bottomRectF.set(0, containerHeight - footerHeight, containerWidth, containerHeight);
-        } else {
-            bottomRectF.set(0, contentView.getBottom(), containerWidth, containerHeight);
+        switch (orientation) {
+            case LEFT:
+                if (contentView.getLeft() >= footerHeight) {
+                    dragRect.set(0, 0, footerHeight, containerHeight);
+                } else {
+                    dragRect.set(0, 0, contentView.getLeft(), containerHeight);
+                }
+                break;
+            case TOP:
+                if (contentView.getTop() >= footerHeight) {
+                    dragRect.set(0, 0, containerWidth, footerHeight);
+                } else {
+                    dragRect.set(0, 0, containerWidth, contentView.getTop());
+                }
+                break;
+            case RIGHT:
+                if (containerWidth - contentView.getRight() >= footerHeight) {
+                    dragRect.set(containerWidth - footerHeight, 0, containerWidth, containerHeight);
+                } else {
+                    dragRect.set(containerWidth - contentView.getRight(), 0, containerWidth, containerHeight);
+                }
+                break;
+            case BOTTOM:
+                if (containerHeight - contentView.getBottom() >= footerHeight) {
+                    dragRect.set(0, containerHeight - footerHeight, containerWidth, containerHeight);
+                } else {
+                    dragRect.set(0, contentView.getBottom(), containerWidth, containerHeight);
+                }
+                break;
         }
-        canvas.drawRect(bottomRectF, rectPaint);
+        canvas.drawRect(dragRect, rectPaint);
     }
 
     private void drawBezier(Canvas canvas) {
@@ -198,6 +240,7 @@ public class DragContainer extends ViewGroup {
     }
 
     private int tmpIconTop;
+
     private void drawIcon(Canvas canvas) {
         if (iconDrawable == null) {
             return;
@@ -238,18 +281,36 @@ public class DragContainer extends ViewGroup {
         canvas.drawText(text, x, y - textPaint.getFontMetrics().ascent, textPaint);
     }
 
-    @Override
-    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-        super.onSizeChanged(w, h, oldw, oldh);
-        containerWidth = w;
-        containerHeight = h;
-    }
-
     public void setIconDrawable(Drawable drawable) {
         iconDrawable = drawable;
     }
 
     private void setContentView(int left, int top, int right, int bottom) {
+        shouldResetContentView = false;
+        switch (orientation) {
+            case LEFT:
+                if (left < 0) {
+                    return;
+                }
+                break;
+            case TOP:
+                if (top < 0) {
+                    return;
+                }
+                break;
+            case RIGHT:
+                if (right > containerWidth) {
+                    return;
+                }
+                break;
+            case BOTTOM:
+                if (bottom > containerHeight) {
+                    return;
+                }
+                break;
+        }
+
+        shouldResetContentView = true;
         contentView.setLeft(left);
         contentView.setTop(top);
         contentView.setRight(right);
@@ -258,19 +319,49 @@ public class DragContainer extends ViewGroup {
     }
 
     private void resetContentView() {
+        if (!shouldResetContentView) {
+            return;
+        }
+
         ValueAnimator animator = ValueAnimator.ofFloat(0, 1);
         animator.setDuration(1000);
+
+        final int left = contentView.getLeft();
+        final int right = contentView.getRight();
+        final int top = contentView.getTop();
+        final int bottom = contentView.getBottom();
+        float totalDx = 0;
+        float totalDy = 0;
+        switch (orientation) {
+            case LEFT:
+                totalDx = containerWidth - contentView.getLeft();
+                break;
+            case RIGHT:
+                totalDx = containerWidth - contentView.getRight();
+                break;
+            case TOP:
+                totalDy = containerHeight - contentView.getTop();
+                break;
+            case BOTTOM:
+                totalDy = containerHeight - contentView.getBottom();
+                break;
+        }
+
+        final float totalDxFinal = totalDx;
+        final float totalDyFinal = totalDy;
+        final boolean isVertical = (orientation == TOP || orientation == BOTTOM);
         animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-
-            final int top = contentView.getTop();
-            final int bottom = contentView.getBottom();
-            final float totalDy = containerHeight - contentView.getBottom();
-
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
                 float progress = (float) animation.getAnimatedValue();
-                float currentDy = totalDy * progress;
-                setContentView(contentView.getLeft(), top + (int) currentDy, contentView.getRight(), bottom + (int) currentDy);
+                float currentDx, currentDy;
+                if (isVertical) {
+                    currentDy = totalDyFinal * progress;
+                    setContentView(left, top + (int) currentDy, right, bottom + (int) currentDy);
+                } else {
+                    currentDx = totalDxFinal * progress;
+                    setContentView(left + (int) currentDx, top, right + (int) currentDx, bottom);
+                }
             }
         });
         animator.start();
