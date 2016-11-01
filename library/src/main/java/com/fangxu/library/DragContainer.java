@@ -55,6 +55,7 @@ public class DragContainer extends ViewGroup {
 
     private Path bezierPath;
     private RectF dragRect;
+    private int tmpIconPos;
 
     private Drawable iconDrawable;
 
@@ -181,7 +182,7 @@ public class DragContainer extends ViewGroup {
         drawRect(canvas);
         drawBezier(canvas);
         drawIcon(canvas);
-        drawTexts(canvas);
+//        drawTexts(canvas);
     }
 
     private void drawRect(Canvas canvas) {
@@ -219,27 +220,100 @@ public class DragContainer extends ViewGroup {
     }
 
     private void drawBezier(Canvas canvas) {
-        Log.i(TAG, "dragDy=" + dragDy + ", footerHeight=" + footerHeight);
-        if (containerHeight - contentView.getBottom() >= footerHeight) {
-            float sx = 0;
-            float sy = containerHeight - footerHeight;
-            float cx = contentView.getWidth() * 0.5f;
-            float cy;
-            if (containerHeight - contentView.getBottom() >= DEFAULT_BEZIER_DRAG_THRESHOLD) {
-                cy = containerHeight - DEFAULT_BEZIER_DRAG_THRESHOLD;
-            } else {
-                cy = contentView.getBottom();
-            }
-            float ex = containerWidth;
-            float ey = containerHeight - footerHeight;
+//        Log.i(TAG, "dragDy=" + dragDy + ", footerHeight=" + footerHeight);
+        if (shouldDrawBezier()) {
+            float[] params = getBezierParams();
             bezierPath.reset();
-            bezierPath.moveTo(sx, sy);
-            bezierPath.quadTo(cx, cy, ex, ey);
+            bezierPath.moveTo(params[0], params[1]);
+            bezierPath.quadTo(params[2], params[3], params[4], params[5]);
             canvas.drawPath(bezierPath, bezierPaint);
         }
     }
 
-    private int tmpIconTop;
+    private float[] getBezierParams() {
+        //params[0] = sx,params[1] = sy, params[2] = cx,params[3] = cy, params[4] = ex,params[5] = ey
+        float[] params = new float[6];
+        //sx:bezier start point x
+        //sy:bezier start point y
+        //cx:bezier control point x
+        //cy:bezier control point y
+        //ex:bezier end point x
+        //ey:bezier end point y
+        float sx = 0, sy = 0, cx = 0, cy = 0, ex = 0, ey = 0;
+        switch (orientation) {
+            case LEFT:
+                sx = footerHeight;
+                sy = 0;
+                cy = containerHeight / 2;
+                if (contentView.getLeft() >= DEFAULT_BEZIER_DRAG_THRESHOLD) {
+                    cx = DEFAULT_BEZIER_DRAG_THRESHOLD;
+                } else {
+                    cx = contentView.getLeft();
+                }
+                ex = footerHeight;
+                ey = containerHeight;
+                break;
+            case RIGHT:
+                sx = containerWidth - footerHeight;
+                sy = 0;
+                cy = containerHeight / 2;
+                if (containerWidth - contentView.getRight() >= DEFAULT_BEZIER_DRAG_THRESHOLD) {
+                    cx = containerWidth - DEFAULT_BEZIER_DRAG_THRESHOLD;
+                } else {
+                    cx = contentView.getRight();
+                }
+                ex = containerWidth - footerHeight;
+                ey = containerHeight;
+                break;
+            case TOP:
+                sx = 0;
+                sy = footerHeight;
+                cx = contentView.getWidth() / 2;
+                if (contentView.getTop() >= DEFAULT_BEZIER_DRAG_THRESHOLD) {
+                    cy = DEFAULT_BEZIER_DRAG_THRESHOLD;
+                } else {
+                    cy = contentView.getTop();
+                }
+                ex = containerWidth;
+                ey = footerHeight;
+                break;
+            case BOTTOM:
+                sx = 0;
+                sy = containerHeight - footerHeight;
+                cx = contentView.getWidth() / 2;
+                if (containerHeight - contentView.getBottom() >= DEFAULT_BEZIER_DRAG_THRESHOLD) {
+                    cy = containerHeight - DEFAULT_BEZIER_DRAG_THRESHOLD;
+                } else {
+                    cy = contentView.getBottom();
+                }
+                ex = containerWidth;
+                ey = containerHeight - footerHeight;
+                break;
+        }
+
+        params[0] = sx;
+        params[1] = sy;
+        params[2] = cx;
+        params[3] = cy;
+        params[4] = ex;
+        params[5] = ey;
+
+        return params;
+    }
+
+    private boolean shouldDrawBezier() {
+        switch (orientation) {
+            case LEFT:
+                return contentView.getLeft() >= footerHeight;
+            case RIGHT:
+                return containerWidth - contentView.getRight() >= footerHeight;
+            case TOP:
+                return contentView.getTop() >= footerHeight;
+            case BOTTOM:
+                return containerHeight - contentView.getBottom() >= footerHeight;
+        }
+        return true;
+    }
 
     private void drawIcon(Canvas canvas) {
         if (iconDrawable == null) {
@@ -247,30 +321,102 @@ public class DragContainer extends ViewGroup {
         }
 
         int drawableSize = 45;
-        int left, top, right, bottom;
-        left = containerWidth / 2 - drawableSize / 2;
-        right = left + drawableSize;
-        if (containerHeight - contentView.getBottom() <= DEFAULT_BEZIER_DRAG_THRESHOLD * 0.9f) {
-            top = contentView.getBottom() + (containerHeight - contentView.getBottom()) / 2;
-            bottom = top + drawableSize;
-            tmpIconTop = top;
-            iconDrawable.setBounds(left, top, right, bottom);
-            iconDrawable.draw(canvas);
-        } else {
-            top = tmpIconTop;
-            bottom = top + drawableSize;
+        int params[] = getIconPosParams(drawableSize);
+        Log.i(TAG, "left=" + params[0] + ", right=" + params[2] + ", top=" + params[1] + ", bottom=" + params[3]);
+
+        if (shouldRotateIcon()) {
             canvas.save();
-            iconDrawable.setBounds(left, top, right, bottom);
-            canvas.rotate(180, left + drawableSize / 2, top + drawableSize / 2);
-            iconDrawable.draw(canvas);
+            canvas.rotate(180);
+        }
+
+        iconDrawable.setBounds(params[0], params[1], params[2], params[3]);
+        iconDrawable.draw(canvas);
+
+        if (shouldRotateIcon()) {
             canvas.restore();
         }
+    }
+
+    private boolean shouldRotateIcon() {
+        switch (orientation) {
+            case LEFT:
+                return contentView.getLeft() <= DEFAULT_BEZIER_DRAG_THRESHOLD * 0.9f;
+            case TOP:
+                return contentView.getTop() <= DEFAULT_BEZIER_DRAG_THRESHOLD * 0.9f;
+            case RIGHT:
+                return containerWidth - contentView.getRight() <= DEFAULT_BEZIER_DRAG_THRESHOLD * 0.9f;
+            case BOTTOM:
+                return containerHeight - contentView.getBottom() <= DEFAULT_BEZIER_DRAG_THRESHOLD * 0.9f;
+        }
+        return true;
+    }
+
+    private int[] getIconPosParams(int drawableSize) {
+        int left = 0, top = 0, right = 0, bottom = 0;
+        switch (orientation) {
+            case LEFT:
+                top = containerHeight / 2 - drawableSize / 2;
+                bottom = top + drawableSize;
+                if (contentView.getLeft() <= DEFAULT_BEZIER_DRAG_THRESHOLD * 0.9f) {
+                    right = contentView.getLeft() / 2;
+                    left = right - drawableSize;
+                    tmpIconPos = right;
+                } else {
+                    right = tmpIconPos;
+                    left = right - drawableSize;
+                }
+                break;
+            case RIGHT:
+                top = containerHeight / 2 - drawableSize / 2;
+                bottom = top + drawableSize;
+                if (containerWidth - contentView.getRight() <= DEFAULT_BEZIER_DRAG_THRESHOLD * 0.9f) {
+                    left = contentView.getRight() + (containerWidth - contentView.getRight()) / 2;
+                    right = left + drawableSize;
+                    tmpIconPos = left;
+                } else {
+                    left = tmpIconPos;
+                    right = left + drawableSize;
+                }
+                break;
+            case TOP:
+                left = containerWidth / 2 - drawableSize / 2;
+                right = left + drawableSize;
+                if (contentView.getTop() <= DEFAULT_BEZIER_DRAG_THRESHOLD * 0.9f) {
+                    top = contentView.getTop() / 2;
+                    bottom = top - drawableSize;
+                    tmpIconPos = top;
+                } else {
+                    top = tmpIconPos;
+                    bottom = top - drawableSize;
+                }
+                break;
+            case BOTTOM:
+                left = containerWidth / 2 - drawableSize / 2;
+                right = left + drawableSize;
+                if (containerHeight - contentView.getBottom() <= DEFAULT_BEZIER_DRAG_THRESHOLD * 0.9f) {
+                    top = contentView.getBottom() + (containerHeight - contentView.getBottom()) / 2;
+                    bottom = top + drawableSize;
+                    tmpIconPos = top;
+                } else {
+                    top = tmpIconPos;
+                    bottom = top + drawableSize;
+                }
+                break;
+        }
+
+        int[] params = new int[4];
+        params[0] = left;
+        params[1] = top;
+        params[2] = right;
+        params[3] = bottom;
+
+        return params;
     }
 
     private void drawTexts(Canvas canvas) {
         float x = contentView.getWidth() / 2;
         float y;
-        y = tmpIconTop + 45;
+        y = tmpIconPos + 45;
 
         String text;
         if (containerHeight - contentView.getBottom() <= DEFAULT_BEZIER_DRAG_THRESHOLD * 0.9f) {
@@ -334,16 +480,16 @@ public class DragContainer extends ViewGroup {
         float totalDy = 0;
         switch (orientation) {
             case LEFT:
-                totalDx = containerWidth - contentView.getLeft();
+                totalDx = -left;
                 break;
             case RIGHT:
-                totalDx = containerWidth - contentView.getRight();
+                totalDx = containerWidth - right;
                 break;
             case TOP:
-                totalDy = containerHeight - contentView.getTop();
+                totalDy = -top;
                 break;
             case BOTTOM:
-                totalDy = containerHeight - contentView.getBottom();
+                totalDy = containerHeight - bottom;
                 break;
         }
 
