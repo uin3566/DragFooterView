@@ -8,14 +8,18 @@
         android:id="@+id/drag_container"
         android:layout_width="300dp"
         android:layout_height="300dp"
-        app:dc_orientation="0"
+        app:dc_orientation="RIGHT"
+        app:dc_icon_drawable="@drawable/left"
+        app:dc_icon_size="10dp"
+        app:dc_text_normal="释放查看"
+        app:dc_text_event="查看更多"
         android:layout_centerInParent="true"
-        android:background="#ababab">
+        android:background="@android:color/white">
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="#ff6600"
+            android:background="#999999"
             android:gravity="center"
             android:text="MainView"/>
 
