@@ -36,6 +36,20 @@ public class DragContainer extends ViewGroup {
 
     }
 
+    private static final int DRAG_OUT = 10;
+    private static final int DRAG_IN = 11;
+    private static final int RELEASE = 12;
+
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef({DRAG_OUT, DRAG_IN, RELEASE})
+    public @interface DragState {
+
+    }
+
+    private int dragState;
+    private float lastMoveX;
+    private float lastMoveY;
+
     private View contentView;
     private int containerWidth, containerHeight;
 
@@ -61,13 +75,14 @@ public class DragContainer extends ViewGroup {
     private float dragDamp;
     private int bezierDragThreshold;
 
-    private boolean isResetting = false;
     private boolean shouldResetContentView;
     private ValueAnimator resetAnimator;
     private ValueAnimator iconRotateAnimator;
     private int rotateThreshold;
-    float iconRotateDegree = 0;
-    boolean rotateAnimatorExecuted = false;
+    private float iconRotateDegree = 0;
+    private boolean everRotatedIcon = false;
+    private boolean dragOutRotateAnimatorExecuted = false;
+    private boolean dragInRotateAnimatorExecuted = false;
 
     private float downX, downY;
     private float dragDx, dragDy;
@@ -133,6 +148,8 @@ public class DragContainer extends ViewGroup {
         textPaint.setTextAlign(Paint.Align.CENTER);
         textPaint.setTextSize(textSize);
 
+        setDragState(RELEASE);
+
         //store bezier params, params[0] = sx,params[1] = sy, params[2] = cx,params[3] = cy, params[4] = ex,params[5] = ey
         //sx:bezier start point x
         //sy:bezier start point y
@@ -175,6 +192,15 @@ public class DragContainer extends ViewGroup {
 
     public void setOrientation(@FooterOrientation int orientation) {
         this.orientation = orientation;
+    }
+
+    @DragState
+    public int getDragState() {
+        return dragState;
+    }
+
+    public void setDragState(@DragState int dragState) {
+        this.dragState = dragState;
     }
 
     @Override
@@ -230,12 +256,23 @@ public class DragContainer extends ViewGroup {
         }
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
+                lastMoveX = 0;
+                lastMoveY = 0;
                 dragDx = 0;
                 dragDy = 0;
                 downX = event.getX();
                 downY = event.getY();
                 break;
             case MotionEvent.ACTION_MOVE:
+                if (lastMoveX == 0) {
+                    lastMoveX = event.getX();
+                }
+                if (lastMoveY == 0) {
+                    lastMoveY = event.getY();
+                }
+
+                updateDragState(event);
+
                 float realDragDistance;
                 if (orientation == LEFT || orientation == RIGHT) {
                     dragDx = event.getX() - downX;
@@ -253,6 +290,27 @@ public class DragContainer extends ViewGroup {
                 break;
         }
         return true;
+    }
+
+    private void updateDragState(MotionEvent event) {
+        switch (orientation) {
+            case LEFT:
+                setDragState(event.getX() > lastMoveX ? DRAG_OUT : DRAG_IN);
+                lastMoveX = event.getX();
+                break;
+            case RIGHT:
+                setDragState(event.getX() > lastMoveX ? DRAG_IN : DRAG_OUT);
+                lastMoveX = event.getX();
+                break;
+            case TOP:
+                setDragState(event.getY() > lastMoveY ? DRAG_OUT : DRAG_IN);
+                lastMoveY = event.getY();
+                break;
+            case BOTTOM:
+                setDragState(event.getY() > lastMoveY ? DRAG_IN : DRAG_OUT);
+                lastMoveY = event.getY();
+                break;
+        }
     }
 
     @Override
@@ -390,12 +448,16 @@ public class DragContainer extends ViewGroup {
 
         setIconPosParams();
 
-        if (isResetting) {
-            if (everRotatedIcon && !rotateAnimatorExecuted && !shouldRotateIconWhileDragging()) {
+        if (getDragState() == RELEASE) {
+            if (everRotatedIcon && !dragInRotateAnimatorExecuted && !excessRotateThreshold()) {
+                startIconRotateAnimator();
+            }
+        } else if (getDragState() == DRAG_OUT) {
+            if (excessRotateThreshold() && !dragOutRotateAnimatorExecuted) {
                 startIconRotateAnimator();
             }
         } else {
-            if (shouldRotateIconWhileDragging() && !rotateAnimatorExecuted) {
+            if (!excessRotateThreshold() && !dragInRotateAnimatorExecuted) {
                 startIconRotateAnimator();
             }
         }
@@ -410,15 +472,18 @@ public class DragContainer extends ViewGroup {
     }
 
     private void startIconRotateAnimator() {
-        rotateAnimatorExecuted = true;
         int duration = 120;
         if (iconRotateAnimator != null && iconRotateAnimator.isRunning()) {
             iconRotateAnimator.cancel();
         }
-        if (isResetting) {
-            iconRotateAnimator = ValueAnimator.ofFloat(1.0f, 0.0f);
-        } else {
+        if (getDragState() == DRAG_OUT) {
+            dragOutRotateAnimatorExecuted = true;
+            dragInRotateAnimatorExecuted = false;
             iconRotateAnimator = ValueAnimator.ofFloat(0.0f, 1.0f);
+        } else {
+            dragInRotateAnimatorExecuted = true;
+            dragOutRotateAnimatorExecuted = false;
+            iconRotateAnimator = ValueAnimator.ofFloat(1.0f, 0.0f);
         }
         iconRotateAnimator.setDuration(duration);
         iconRotateAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
@@ -454,7 +519,7 @@ public class DragContainer extends ViewGroup {
         return y;
     }
 
-    private boolean shouldRotateIconWhileDragging() {
+    private boolean excessRotateThreshold() {
         switch (orientation) {
             case LEFT:
                 return contentView.getLeft() > rotateThreshold;
@@ -573,7 +638,7 @@ public class DragContainer extends ViewGroup {
         }
 
         String tmp;
-        tmp = shouldRotateIconWhileDragging() ? eventString : normalString;
+        tmp = excessRotateThreshold() ? eventString : normalString;
         if (orientation == TOP || orientation == BOTTOM) {
             textRows[0] = tmp;
         }
@@ -643,16 +708,15 @@ public class DragContainer extends ViewGroup {
         return (int) (spValue * fontScale + 0.5f);
     }
 
-    private boolean everRotatedIcon = false;
-
     private void resetContentView() {
         if (!shouldResetContentView) {
             return;
         }
 
-        rotateAnimatorExecuted = false;
-        isResetting = true;
-        everRotatedIcon = shouldRotateIconWhileDragging();
+        dragOutRotateAnimatorExecuted = false;
+        dragInRotateAnimatorExecuted = false;
+        everRotatedIcon = excessRotateThreshold();
+        setDragState(RELEASE);
 
         resetAnimator = ValueAnimator.ofFloat(0, 1);
         resetAnimator.setDuration(resetDuration);
@@ -703,8 +767,7 @@ public class DragContainer extends ViewGroup {
 
             @Override
             public void onAnimationEnd(Animator animation) {
-                isResetting = false;
-                rotateAnimatorExecuted = false;
+                dragOutRotateAnimatorExecuted = false;
             }
 
             @Override
