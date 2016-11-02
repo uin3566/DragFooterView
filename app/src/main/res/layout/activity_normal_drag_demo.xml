@@ -17,6 +17,7 @@
         app:dc_text_normal="释放查看">
 
         <TextView
+            android:id="@+id/tv_single"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="#999999"

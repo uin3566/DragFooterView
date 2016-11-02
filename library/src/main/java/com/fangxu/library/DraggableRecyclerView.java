@@ -7,12 +7,15 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
+import android.view.ViewGroup;
 
 /**
  * Created by Administrator on 2016/11/2.
  */
 public class DraggableRecyclerView extends RecyclerView {
     private int[] into;
+    private float lastMoveX;
+    private float lastMoveY;
 
     public DraggableRecyclerView(Context context) {
         this(context, null);
@@ -63,10 +66,27 @@ public class DraggableRecyclerView extends RecyclerView {
 
     @Override
     public boolean onTouchEvent(MotionEvent e) {
-        if (reachedBottom()) {
-            requestDisallowInterceptTouchEvent(false);
-            return false;
+        ViewGroup parent = (ViewGroup) getParent();
+        if (!(parent instanceof DragContainer)) {
+            throw new RuntimeException("the parent of DraggableRecyclerView must be DragContainer");
         }
+        DragContainer container = ((DragContainer) parent);
+        int orientation = container.getOrientation();
+
+        switch (e.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                requestDisallowInterceptTouchEvent(true);
+                break;
+            case MotionEvent.ACTION_MOVE:
+                if (reachedBottom()) {
+                    requestDisallowInterceptTouchEvent(false);
+                    break;
+                }
+            case MotionEvent.ACTION_UP:
+                requestDisallowInterceptTouchEvent(false);
+                break;
+        }
+
         return super.onTouchEvent(e);
     }
 }

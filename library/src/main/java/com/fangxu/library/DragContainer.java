@@ -1,6 +1,5 @@
 package com.fangxu.library;
 
-import android.animation.Animator;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -36,9 +35,9 @@ public class DragContainer extends ViewGroup {
 
     }
 
-    private static final int DRAG_OUT = 10;
-    private static final int DRAG_IN = 11;
-    private static final int RELEASE = 12;
+    public static final int DRAG_OUT = 10;
+    public static final int DRAG_IN = 11;
+    public static final int RELEASE = 12;
 
     @Retention(RetentionPolicy.SOURCE)
     @IntDef({DRAG_OUT, DRAG_IN, RELEASE})
@@ -247,6 +246,11 @@ public class DragContainer extends ViewGroup {
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         checkChildren();
         contentView.layout(0, 0, containerWidth, containerHeight);
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent ev) {
+        return true;
     }
 
     @Override
@@ -757,27 +761,6 @@ public class DragContainer extends ViewGroup {
                     currentDx = totalDxFinal * progress;
                     setContentView(left + (int) currentDx, top, right + (int) currentDx, bottom);
                 }
-            }
-        });
-        resetAnimator.addListener(new Animator.AnimatorListener() {
-            @Override
-            public void onAnimationStart(Animator animation) {
-
-            }
-
-            @Override
-            public void onAnimationEnd(Animator animation) {
-                dragOutRotateAnimatorExecuted = false;
-            }
-
-            @Override
-            public void onAnimationCancel(Animator animation) {
-
-            }
-
-            @Override
-            public void onAnimationRepeat(Animator animation) {
-
             }
         });
         resetAnimator.start();
