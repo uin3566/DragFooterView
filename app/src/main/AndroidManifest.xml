@@ -1,5 +1,6 @@
-<manifest package="com.fangxu.dragfooterview"
-          xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest
+    package="com.fangxu.dragfooterview"
+    xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application
         android:allowBackup="true"
@@ -14,6 +15,14 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".NormalDragDemoActivity"
+            android:screenOrientation="portrait"/>
+
+        <activity
+            android:name=".RecyclerDragDemoActivity"
+            android:screenOrientation="portrait"/>
     </application>
 
 </manifest>
