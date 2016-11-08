@@ -9,9 +9,11 @@ import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.support.annotation.IntDef;
+import android.support.v4.app.NavUtils;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 
 import java.lang.annotation.Retention;
@@ -249,8 +251,32 @@ public class DragContainer extends ViewGroup {
     }
 
     @Override
-    public boolean onInterceptTouchEvent(MotionEvent ev) {
-        return true;
+    public boolean dispatchTouchEvent(MotionEvent event) {
+        return super.dispatchTouchEvent(event);
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent event) {
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                contentView.dispatchTouchEvent(event);
+            case MotionEvent.ACTION_MOVE:
+                if (lastMoveX == 0) {
+                    lastMoveX = event.getX();
+                }
+                if (lastMoveY == 0) {
+                    lastMoveY = event.getY();
+                }
+
+                updateDragState(event);
+                if (getDragState() == DRAG_OUT) {
+                    return true;
+                }
+                break;
+            case MotionEvent.ACTION_UP:
+                break;
+        }
+        return super.onInterceptTouchEvent(event);
     }
 
     @Override
