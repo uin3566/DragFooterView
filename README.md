@@ -1,9 +1,14 @@
 # DragFooterView
 
+[中文版README](https://github.com/uin3566/DragFooterView/blob/master/README-CN.md)  
+
 ![](https://jitpack.io/v/uin3566/DragFooterView.svg)  
 A ViewGroup with a draggable footer
 
 ![screenshot](/screenshot/demo.gif)
+
+### Inspired by
+![screenshot](/screenshot/inspiration.gif) 
 
 ### Add to your project
 * step1:Add it in your root build.gradle at the end of repositories:
