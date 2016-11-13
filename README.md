@@ -23,7 +23,7 @@ A ViewGroup with a draggable footer
 ```
 
 ### Usage
-1、add in xml like this
+1、add in xml like this **(Attention:it should have only one child view)**
 ```xml
     <com.fangxu.library.DragContainer
         android:id="@+id/drag_recycler_view"
