@@ -9,11 +9,9 @@ import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.support.annotation.IntDef;
-import android.support.v4.app.NavUtils;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 
 import java.lang.annotation.Retention;
@@ -26,46 +24,36 @@ public class DragContainer extends ViewGroup {
 
     private static final String TAG = "DragContainer";
 
-    private static final int LEFT = 0;
-    private static final int RIGHT = 1;
-    private static final int TOP = 2;
-    private static final int BOTTOM = 3;
-
-    @Retention(RetentionPolicy.SOURCE)
-    @IntDef({LEFT, RIGHT, TOP, BOTTOM})
-    public @interface FooterOrientation {
-
-    }
-
-    public static final int DRAG_OUT = 10;
-    public static final int DRAG_IN = 11;
-    public static final int RELEASE = 12;
+    private static final int DRAG_OUT = 10;
+    private static final int DRAG_IN = 11;
+    private static final int RELEASE = 12;
 
     @Retention(RetentionPolicy.SOURCE)
     @IntDef({DRAG_OUT, DRAG_IN, RELEASE})
-    public @interface DragState {
+    private @interface DragState {
 
     }
 
     private int dragState;
-    private float lastMoveX;
-    private float lastMoveY;
 
     private View contentView;
+    private DragListener dragListener;
+    private IDragChecker dragChecker;
     private int containerWidth, containerHeight;
+
+    private static final int DEFAULT_BACKGROUND_COLOR = 0xffffffff;
 
     private static final int DEFAULT_FOOTER_HEIGHT = 30;
     private static final int DEFAULT_FOOTER_COLOR = 0xffcdcdcd;
-    private static final int DEFAULT_BEZIER_DRAG_THRESHOLD = 150;
+    private static final int DEFAULT_BEZIER_DRAG_THRESHOLD = 120;
     private static final int DEFAULT_ICON_SIZE = 15;
     private static final int DEFAULT_TEXT_ICON_GAP = 4;
-    private static final int DEFAULT_RESET_DURATION = 800;
+    private static final int DEFAULT_RESET_DURATION = 700;
     private static final int DEFAULT_TEXT_SIZE = 10;
     private static final int DEFAULT_TEXT_COLOR = 0xff222222;
-    private static final float DEFAULT_DRAG_DAMP = 0.7f;
+    private static final float DEFAULT_DRAG_DAMP = 0.5f;
 
-    //user define params
-    private int orientation;
+    //user define params in xml
     private Drawable iconDrawable;
     private int iconSize;
     private int textIconGap;
@@ -86,7 +74,8 @@ public class DragContainer extends ViewGroup {
     private boolean dragInRotateAnimatorExecuted = false;
 
     private float downX, downY;
-    private float dragDx, dragDy;
+    private float dragDx;
+    private float lastMoveX;
 
     private Paint rectPaint;
     private Paint bezierPaint;
@@ -113,9 +102,20 @@ public class DragContainer extends ViewGroup {
         init(context, attrs);
     }
 
+    public void setDragListener(DragListener dragListener) {
+        this.dragListener = dragListener;
+    }
+
+    public void setIDragChecker(IDragChecker dragChecker) {
+        this.dragChecker = dragChecker;
+    }
+
     private void init(Context context, AttributeSet attrs) {
+        setIDragChecker(new DefaultDragChecker());
+
+        setBackgroundColor();
+
         TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.DragContainer);
-        orientation = ta.getInteger(R.styleable.DragContainer_dc_orientation, BOTTOM);
         iconDrawable = ta.getDrawable(R.styleable.DragContainer_dc_icon_drawable);
         iconSize = ta.getDimensionPixelSize(R.styleable.DragContainer_dc_icon_size, dp2px(context, DEFAULT_ICON_SIZE));
         normalString = ta.getString(R.styleable.DragContainer_dc_text_normal);
@@ -166,54 +166,45 @@ public class DragContainer extends ViewGroup {
         initTextRows();
     }
 
+    private void setBackgroundColor() {
+        Drawable drawable = getBackground();
+        if (drawable == null) {
+            setBackgroundColor(DEFAULT_BACKGROUND_COLOR);
+        }
+    }
+
     private void initTextRows() {
         if (normalString == null || normalString.isEmpty()) {
             return;
         }
 
-        if (orientation == TOP || orientation == BOTTOM) {
-            textRows = new String[1];
+        int normalLength = normalString.length();
+        int eventLength = normalLength;
+        if (eventString != null && !eventString.isEmpty()) {
+            eventLength = eventString.length();
         }
-
-        if (orientation == LEFT || orientation == RIGHT) {
-            int normalLength = normalString.length();
-            int eventLength = normalLength;
-            if (eventString != null && !eventString.isEmpty()) {
-                eventLength = eventString.length();
-            }
-            int rowsLength = normalLength > eventLength ? normalLength : eventLength;
-            textRows = new String[rowsLength];
-        }
-    }
-
-    @FooterOrientation
-    public int getOrientation() {
-        return orientation;
-    }
-
-    public void setOrientation(@FooterOrientation int orientation) {
-        this.orientation = orientation;
+        int rowsLength = normalLength > eventLength ? normalLength : eventLength;
+        textRows = new String[rowsLength];
     }
 
     @DragState
-    public int getDragState() {
+    private int getDragState() {
         return dragState;
     }
 
-    public void setDragState(@DragState int dragState) {
+    private void setDragState(@DragState int dragState) {
         this.dragState = dragState;
     }
 
     @Override
-    protected void onAttachedToWindow() {
-        super.onAttachedToWindow();
+    protected void onFinishInflate() {
+        super.onFinishInflate();
+        checkChildren();
         contentView = getChildAt(0);
     }
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        checkChildren();
-
         int widthMode = MeasureSpec.getMode(widthMeasureSpec);
         int widthSize = MeasureSpec.getSize(widthMeasureSpec);
         int heightMode = MeasureSpec.getMode(heightMeasureSpec);
@@ -222,16 +213,16 @@ public class DragContainer extends ViewGroup {
         measureChildren(widthMeasureSpec, heightMeasureSpec);
 
         int width, height;
-        if (widthMode == MeasureSpec.AT_MOST) {
-            width = contentView.getMeasuredWidth();
-        } else {
+        if (widthMode == MeasureSpec.EXACTLY) {
             width = widthSize;
+        } else {
+            width = contentView.getMeasuredWidth();
         }
 
-        if (heightMode == MeasureSpec.AT_MOST) {
-            height = contentView.getMeasuredHeight();
-        } else {
+        if (heightMode == MeasureSpec.EXACTLY) {
             height = heightSize;
+        } else {
+            height = contentView.getMeasuredHeight();
         }
 
         setMeasuredDimension(width, height);
@@ -246,101 +237,7 @@ public class DragContainer extends ViewGroup {
 
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
-        checkChildren();
         contentView.layout(0, 0, containerWidth, containerHeight);
-    }
-
-    @Override
-    public boolean dispatchTouchEvent(MotionEvent event) {
-        return super.dispatchTouchEvent(event);
-    }
-
-    @Override
-    public boolean onInterceptTouchEvent(MotionEvent event) {
-        switch (event.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                contentView.dispatchTouchEvent(event);
-            case MotionEvent.ACTION_MOVE:
-                if (lastMoveX == 0) {
-                    lastMoveX = event.getX();
-                }
-                if (lastMoveY == 0) {
-                    lastMoveY = event.getY();
-                }
-
-                updateDragState(event);
-                if (getDragState() == DRAG_OUT) {
-                    return true;
-                }
-                break;
-            case MotionEvent.ACTION_UP:
-                break;
-        }
-        return super.onInterceptTouchEvent(event);
-    }
-
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        if (resetAnimator != null && resetAnimator.isRunning()) {
-            return false;
-        }
-        switch (event.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                lastMoveX = 0;
-                lastMoveY = 0;
-                dragDx = 0;
-                dragDy = 0;
-                downX = event.getX();
-                downY = event.getY();
-                break;
-            case MotionEvent.ACTION_MOVE:
-                if (lastMoveX == 0) {
-                    lastMoveX = event.getX();
-                }
-                if (lastMoveY == 0) {
-                    lastMoveY = event.getY();
-                }
-
-                updateDragState(event);
-
-                float realDragDistance;
-                if (orientation == LEFT || orientation == RIGHT) {
-                    dragDx = event.getX() - downX;
-                    realDragDistance = dragDx * dragDamp;
-                    setContentView((int) realDragDistance, 0, containerWidth + (int) realDragDistance, containerHeight);
-                }
-                if (orientation == TOP || orientation == BOTTOM) {
-                    dragDy = event.getY() - downY;
-                    realDragDistance = dragDy * dragDamp;
-                    setContentView(0, (int) realDragDistance, containerWidth, containerHeight + (int) realDragDistance);
-                }
-                break;
-            case MotionEvent.ACTION_UP:
-                resetContentView();
-                break;
-        }
-        return true;
-    }
-
-    private void updateDragState(MotionEvent event) {
-        switch (orientation) {
-            case LEFT:
-                setDragState(event.getX() > lastMoveX ? DRAG_OUT : DRAG_IN);
-                lastMoveX = event.getX();
-                break;
-            case RIGHT:
-                setDragState(event.getX() > lastMoveX ? DRAG_IN : DRAG_OUT);
-                lastMoveX = event.getX();
-                break;
-            case TOP:
-                setDragState(event.getY() > lastMoveY ? DRAG_OUT : DRAG_IN);
-                lastMoveY = event.getY();
-                break;
-            case BOTTOM:
-                setDragState(event.getY() > lastMoveY ? DRAG_IN : DRAG_OUT);
-                lastMoveY = event.getY();
-                break;
-        }
     }
 
     @Override
@@ -353,35 +250,10 @@ public class DragContainer extends ViewGroup {
     }
 
     private void drawRect(Canvas canvas) {
-        switch (orientation) {
-            case LEFT:
-                if (contentView.getLeft() >= footerHeight) {
-                    dragRect.set(0, 0, footerHeight, containerHeight);
-                } else {
-                    dragRect.set(0, 0, contentView.getLeft(), containerHeight);
-                }
-                break;
-            case TOP:
-                if (contentView.getTop() >= footerHeight) {
-                    dragRect.set(0, 0, containerWidth, footerHeight);
-                } else {
-                    dragRect.set(0, 0, containerWidth, contentView.getTop());
-                }
-                break;
-            case RIGHT:
-                if (containerWidth - contentView.getRight() >= footerHeight) {
-                    dragRect.set(containerWidth - footerHeight, 0, containerWidth, containerHeight);
-                } else {
-                    dragRect.set(containerWidth - contentView.getRight(), 0, containerWidth, containerHeight);
-                }
-                break;
-            case BOTTOM:
-                if (containerHeight - contentView.getBottom() >= footerHeight) {
-                    dragRect.set(0, containerHeight - footerHeight, containerWidth, containerHeight);
-                } else {
-                    dragRect.set(0, contentView.getBottom(), containerWidth, containerHeight);
-                }
-                break;
+        if (containerWidth - contentView.getRight() >= footerHeight) {
+            dragRect.set(containerWidth - footerHeight, 0, containerWidth, containerHeight);
+        } else {
+            dragRect.set(containerWidth - contentView.getRight(), 0, containerWidth, containerHeight);
         }
         canvas.drawRect(dragRect, rectPaint);
     }
@@ -397,57 +269,17 @@ public class DragContainer extends ViewGroup {
     }
 
     private void setBezierParams() {
-        float sx = 0, sy = 0, cx = 0, cy = 0, ex = 0, ey = 0;
-        switch (orientation) {
-            case LEFT:
-                sx = footerHeight;
-                sy = 0;
-                cy = containerHeight / 2;
-                if (contentView.getLeft() >= bezierDragThreshold) {
-                    cx = bezierDragThreshold;
-                } else {
-                    cx = contentView.getLeft();
-                }
-                ex = footerHeight;
-                ey = containerHeight;
-                break;
-            case RIGHT:
-                sx = containerWidth - footerHeight;
-                sy = 0;
-                cy = containerHeight / 2;
-                if (containerWidth - contentView.getRight() >= bezierDragThreshold) {
-                    cx = containerWidth - bezierDragThreshold;
-                } else {
-                    cx = contentView.getRight();
-                }
-                ex = containerWidth - footerHeight;
-                ey = containerHeight;
-                break;
-            case TOP:
-                sx = 0;
-                sy = footerHeight;
-                cx = contentView.getWidth() / 2;
-                if (contentView.getTop() >= bezierDragThreshold) {
-                    cy = bezierDragThreshold;
-                } else {
-                    cy = contentView.getTop();
-                }
-                ex = containerWidth;
-                ey = footerHeight;
-                break;
-            case BOTTOM:
-                sx = 0;
-                sy = containerHeight - footerHeight;
-                cx = contentView.getWidth() / 2;
-                if (containerHeight - contentView.getBottom() >= bezierDragThreshold) {
-                    cy = containerHeight - bezierDragThreshold;
-                } else {
-                    cy = contentView.getBottom();
-                }
-                ex = containerWidth;
-                ey = containerHeight - footerHeight;
-                break;
+        float sx = containerWidth - footerHeight;
+        float sy = 0;
+        float cy = containerHeight / 2;
+        float cx;
+        if (containerWidth - contentView.getRight() >= bezierDragThreshold) {
+            cx = containerWidth - bezierDragThreshold;
+        } else {
+            cx = contentView.getRight();
         }
+        float ex = containerWidth - footerHeight;
+        float ey = containerHeight;
 
         bezierParams[0] = sx;
         bezierParams[1] = sy;
@@ -458,17 +290,7 @@ public class DragContainer extends ViewGroup {
     }
 
     private boolean shouldDrawBezier() {
-        switch (orientation) {
-            case LEFT:
-                return contentView.getLeft() >= footerHeight;
-            case RIGHT:
-                return containerWidth - contentView.getRight() >= footerHeight;
-            case TOP:
-                return contentView.getTop() >= footerHeight;
-            case BOTTOM:
-                return containerHeight - contentView.getBottom() >= footerHeight;
-        }
-        return true;
+        return containerWidth - contentView.getRight() >= footerHeight;
     }
 
     private void drawIcon(final Canvas canvas) {
@@ -493,7 +315,7 @@ public class DragContainer extends ViewGroup {
         }
 
         canvas.save();
-        canvas.rotate(iconRotateDegree, getIconRotateX(iconSize), getIconRotateY(iconSize));
+        canvas.rotate(iconRotateDegree, getIconRotateX(iconSize), getIconRotateY());
 
         iconDrawable.setBounds(iconParams[0], iconParams[1], iconParams[2], iconParams[3]);
         iconDrawable.draw(canvas);
@@ -502,7 +324,7 @@ public class DragContainer extends ViewGroup {
     }
 
     private void startIconRotateAnimator() {
-        int duration = 120;
+        int duration = 100;
         if (iconRotateAnimator != null && iconRotateAnimator.isRunning()) {
             iconRotateAnimator.cancel();
         }
@@ -526,94 +348,29 @@ public class DragContainer extends ViewGroup {
     }
 
     private float getIconRotateX(int drawableSize) {
-        float x = 0;
         int left = iconParams[0];
-        if (orientation == LEFT || orientation == RIGHT) {
-            x = left + drawableSize / 2;
-        }
-        if (orientation == TOP || orientation == BOTTOM) {
-            x = containerWidth / 2;
-        }
-        return x;
+        return left + drawableSize / 2;
     }
 
-    private float getIconRotateY(int drawableSize) {
-        float y = 0;
-        int top = iconParams[1];
-        if (orientation == LEFT || orientation == RIGHT) {
-            y = containerHeight / 2;
-        }
-        if (orientation == TOP || orientation == BOTTOM) {
-            y = top + drawableSize / 2;
-        }
-        return y;
+    private float getIconRotateY() {
+        return containerHeight / 2;
     }
 
     private boolean excessRotateThreshold() {
-        switch (orientation) {
-            case LEFT:
-                return contentView.getLeft() > rotateThreshold;
-            case TOP:
-                return contentView.getTop() > rotateThreshold;
-            case RIGHT:
-                return containerWidth - contentView.getRight() > rotateThreshold;
-            case BOTTOM:
-                return containerHeight - contentView.getBottom() > rotateThreshold;
-        }
-        return true;
+        return containerWidth - contentView.getRight() > rotateThreshold;
     }
 
     private void setIconPosParams() {
-        int left = 0, top = 0, right = 0, bottom = 0;
-        switch (orientation) {
-            case LEFT:
-                top = containerHeight / 2 - iconSize / 2;
-                bottom = top + iconSize;
-                if (contentView.getLeft() <= rotateThreshold) {
-                    right = contentView.getLeft() / 2;
-                    left = right - iconSize;
-                    tmpIconPos = right;
-                } else {
-                    right = tmpIconPos;
-                    left = right - iconSize;
-                }
-                break;
-            case RIGHT:
-                top = containerHeight / 2 - iconSize / 2;
-                bottom = top + iconSize;
-                if (containerWidth - contentView.getRight() <= rotateThreshold) {
-                    left = contentView.getRight() + (containerWidth - contentView.getRight()) / 2;
-                    right = left + iconSize;
-                    tmpIconPos = left;
-                } else {
-                    left = tmpIconPos;
-                    right = left + iconSize;
-                }
-                break;
-            case TOP:
-                left = containerWidth / 2 - iconSize / 2;
-                right = left + iconSize;
-                if (contentView.getTop() <= rotateThreshold) {
-                    bottom = contentView.getTop() / 2;
-                    top = bottom - iconSize;
-                    tmpIconPos = bottom;
-                } else {
-                    bottom = tmpIconPos;
-                    top = bottom - iconSize;
-                }
-                break;
-            case BOTTOM:
-                left = containerWidth / 2 - iconSize / 2;
-                right = left + iconSize;
-                if (containerHeight - contentView.getBottom() <= rotateThreshold) {
-                    top = contentView.getBottom() + (containerHeight - contentView.getBottom()) / 2;
-                    bottom = top + iconSize;
-                    tmpIconPos = top;
-                } else {
-                    top = tmpIconPos;
-                    bottom = top + iconSize;
-                }
-                break;
+        int top = containerHeight / 2 - iconSize / 2;
+        int bottom = top + iconSize;
+        int left, right;
+        if (containerWidth - contentView.getRight() <= rotateThreshold) {
+            left = contentView.getRight() + (containerWidth - contentView.getRight()) / 2;
+            right = left + iconSize;
+            tmpIconPos = left;
+        } else {
+            left = tmpIconPos;
+            right = left + iconSize;
         }
 
         iconParams[0] = left;
@@ -631,32 +388,11 @@ public class DragContainer extends ViewGroup {
             setIconPosParams();
         }
 
-        int iconLeft = iconParams[0];
         int iconTop = iconParams[1];
         int iconRight = iconParams[2];
-        int iconBottom = iconParams[3];
 
-        float x = 0;
-        float y = 0;
-
-        switch (orientation) {
-            case LEFT:
-                x = iconLeft - textPaint.getTextSize() / 2 - textIconGap;
-                y = iconTop + iconSize / 2;
-                break;
-            case RIGHT:
-                x = iconRight + textPaint.getTextSize() / 2 + textIconGap;
-                y = iconTop + iconSize / 2;
-                break;
-            case TOP:
-                x = iconLeft + iconSize / 2;
-                y = iconTop - textPaint.getTextSize() / 2 - textIconGap;
-                break;
-            case BOTTOM:
-                x = iconLeft + iconSize / 2;
-                y = iconBottom + textPaint.getTextSize() / 2 + textIconGap;
-                break;
-        }
+        float x = iconRight + textPaint.getTextSize() / 2 + textIconGap;
+        float y = iconTop + iconSize / 2;
 
         setTextRows();
         drawTextInRows(textRows, canvas, x, y);
@@ -669,13 +405,8 @@ public class DragContainer extends ViewGroup {
 
         String tmp;
         tmp = excessRotateThreshold() ? eventString : normalString;
-        if (orientation == TOP || orientation == BOTTOM) {
-            textRows[0] = tmp;
-        }
-        if (orientation == LEFT || orientation == RIGHT) {
-            for (int i = 0; i < tmp.length(); i++) {
-                textRows[i] = String.valueOf(tmp.charAt(i));
-            }
+        for (int i = 0; i < tmp.length(); i++) {
+            textRows[i] = String.valueOf(tmp.charAt(i));
         }
     }
 
@@ -697,27 +428,8 @@ public class DragContainer extends ViewGroup {
 
     private void setContentView(int left, int top, int right, int bottom) {
         shouldResetContentView = false;
-        switch (orientation) {
-            case LEFT:
-                if (left < 0) {
-                    return;
-                }
-                break;
-            case TOP:
-                if (top < 0) {
-                    return;
-                }
-                break;
-            case RIGHT:
-                if (right > containerWidth) {
-                    return;
-                }
-                break;
-            case BOTTOM:
-                if (bottom > containerHeight) {
-                    return;
-                }
-                break;
+        if (right > containerWidth) {
+            return;
         }
 
         shouldResetContentView = true;
@@ -728,25 +440,85 @@ public class DragContainer extends ViewGroup {
         invalidate();
     }
 
-    public int dp2px(Context context, float dpValue) {
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent event) {
+        if (resetAnimator != null && resetAnimator.isRunning()) {
+            return super.dispatchTouchEvent(event);
+        }
+
+        //dispatch event to child
+        super.dispatchTouchEvent(event);
+
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                dragDx = 0;
+                downX = event.getX();
+                downY = event.getY();
+                lastMoveX = downX;
+                break;
+            case MotionEvent.ACTION_MOVE:
+                float dx = Math.abs(event.getX() - downX);
+                float dy = Math.abs(event.getY() - downY);
+                if (dx >= dy) {
+                    getParent().requestDisallowInterceptTouchEvent(true);
+                } else {
+                    getParent().requestDisallowInterceptTouchEvent(false);
+                }
+
+                if (dragDx <= 0 && dragChecker.canDrag(contentView)) {
+                    updateDragState(event);
+                    dragDx = event.getX() - downX;
+                    float realDragDistance = dragDx * dragDamp;
+                    setContentView((int) realDragDistance, 0, containerWidth + (int) realDragDistance, containerHeight);
+                }
+                break;
+            case MotionEvent.ACTION_CANCEL:
+            case MotionEvent.ACTION_UP:
+                resetContentView();
+                break;
+        }
+        return true;
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent ev) {
+        if (ev.getAction() == MotionEvent.ACTION_MOVE) {
+            if (getDragState() != RELEASE) {
+                return true;
+            }
+        }
+        return super.onInterceptTouchEvent(ev);
+    }
+
+    private void updateDragState(MotionEvent event) {
+        if (event.getX() < lastMoveX) {
+            setDragState(DRAG_OUT);
+        }
+        if (event.getX() > lastMoveX && contentView.getRight() < containerWidth) {
+            setDragState(DRAG_IN);
+        }
+        lastMoveX = event.getX();
+    }
+
+    private int dp2px(Context context, float dpValue) {
         final float scale = context.getResources().getDisplayMetrics().density;
         return (int) (dpValue * scale + 0.5f);
     }
 
-    public int sp2px(Context context, float spValue) {
+    private int sp2px(Context context, float spValue) {
         final float fontScale = context.getResources().getDisplayMetrics().scaledDensity;
         return (int) (spValue * fontScale + 0.5f);
     }
 
     private void resetContentView() {
-        if (!shouldResetContentView) {
-            return;
-        }
-
         dragOutRotateAnimatorExecuted = false;
         dragInRotateAnimatorExecuted = false;
         everRotatedIcon = excessRotateThreshold();
         setDragState(RELEASE);
+
+        if (!shouldResetContentView) {
+            return;
+        }
 
         resetAnimator = ValueAnimator.ofFloat(0, 1);
         resetAnimator.setDuration(resetDuration);
@@ -755,41 +527,22 @@ public class DragContainer extends ViewGroup {
         final int right = contentView.getRight();
         final int top = contentView.getTop();
         final int bottom = contentView.getBottom();
-        float totalDx = 0;
-        float totalDy = 0;
-        switch (orientation) {
-            case LEFT:
-                totalDx = -left;
-                break;
-            case RIGHT:
-                totalDx = containerWidth - right;
-                break;
-            case TOP:
-                totalDy = -top;
-                break;
-            case BOTTOM:
-                totalDy = containerHeight - bottom;
-                break;
-        }
+        final float totalDx = containerWidth - right;
 
-        final float totalDxFinal = totalDx;
-        final float totalDyFinal = totalDy;
-        final boolean isVertical = (orientation == TOP || orientation == BOTTOM);
         resetAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
                 float progress = (float) animation.getAnimatedValue();
-                float currentDx, currentDy;
-                if (isVertical) {
-                    currentDy = totalDyFinal * progress;
-                    setContentView(left, top + (int) currentDy, right, bottom + (int) currentDy);
-                } else {
-                    currentDx = totalDxFinal * progress;
-                    setContentView(left + (int) currentDx, top, right + (int) currentDx, bottom);
-                }
+                float currentDx;
+                currentDx = totalDx * progress;
+                setContentView(left + (int) currentDx, top, right + (int) currentDx, bottom);
             }
         });
         resetAnimator.start();
+
+        if (dragListener != null && totalDx > rotateThreshold) {
+            dragListener.onDragEvent();
+        }
     }
 
     private void checkChildren() {

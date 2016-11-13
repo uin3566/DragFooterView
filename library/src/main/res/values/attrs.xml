@@ -2,12 +2,6 @@
 <resources>
 
     <declare-styleable name="DragContainer">
-        <attr name="dc_orientation">
-            <enum name="LEFT" value="0"/>
-            <enum name="RIGHT" value="1"/>
-            <enum name="TOP" value="2"/>
-            <enum name="BOTTOM" value="3"/>
-        </attr>
         <attr name="dc_icon_drawable" format="reference"/>
         <attr name="dc_icon_size" format="dimension|reference"/>
         <attr name="dc_text_normal" format="string|reference"/>
