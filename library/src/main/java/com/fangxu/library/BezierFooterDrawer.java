@@ -6,6 +6,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
+import android.util.Log;
 
 /**
  * Created by Administrator on 2016/11/17.
@@ -244,7 +245,7 @@ public class BezierFooterDrawer implements IFooterDrawer {
         float bottom = top + drawParams.iconSize;
         float left, right;
         if (footerRegion.right - footerRegion.left <= rotateThreshold) {
-            left = footerRegion.right + (footerRegion.right - footerRegion.left) / 2;
+            left = footerRegion.left + (footerRegion.right - footerRegion.left) / 2;
             right = left + drawParams.iconSize;
             tmpIconPos = left;
         } else {
