@@ -1,6 +1,7 @@
 package com.fangxu.library;
 
 import android.animation.ValueAnimator;
+import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
@@ -24,9 +25,6 @@ public class BezierFooterDrawer implements IFooterDrawer {
     private RectF dragRect;
     private float tmpIconPos;
 
-    private float bezierDragThreshold;
-    private float rectFooterThick;
-
     private ValueAnimator iconRotateAnimator;
     private float rotateThreshold;
     private float iconRotateDegree = 0;
@@ -36,23 +34,36 @@ public class BezierFooterDrawer implements IFooterDrawer {
 
     private float[] bezierParams;
     private float[] iconParams;
-    //store text array,if orientation is TOP or BOTTOM,the length of textRows is 1,otherwise is the max length of normalString and eventString
     private String[] textRows;
 
     public static class DrawParams {
         public int textIconGap;
         public String normalString;
         public String eventString;
-        public int footerColor;
         public int textColor;
         public float textSize;
         public Drawable iconDrawable;
         public float iconSize;
+        public float bezierDragThreshold;
+        public float rectFooterThick;
+        public int footerColor;
     }
 
-    public BezierFooterDrawer(DrawParams drawParams) {
+    private BezierFooterDrawer(Builder builder) {
         footerRegion = new RectF();
-        this.drawParams = drawParams;
+        drawParams = new DrawParams();
+        Context context = builder.context;
+        drawParams.textSize = sp2px(context, builder.textSize);
+        drawParams.textIconGap = dp2px(context, builder.textIconGap);
+        drawParams.textColor = builder.textColor;
+        drawParams.normalString = builder.normalString;
+        drawParams.eventString = builder.eventString;
+        drawParams.iconDrawable = builder.iconDrawable;
+        drawParams.iconSize = dp2px(context, builder.iconSize);
+        drawParams.bezierDragThreshold = dp2px(context, builder.bezierDragThreshold);
+        rotateThreshold = drawParams.bezierDragThreshold * 0.9f;
+        drawParams.rectFooterThick = dp2px(context, builder.rectFooterThick);
+        drawParams.footerColor = builder.footerColor;
 
         //store bezier params, params[0] = sx,params[1] = sy, params[2] = cx,params[3] = cy, params[4] = ex,params[5] = ey
         //sx:bezier start point x
@@ -68,12 +79,6 @@ public class BezierFooterDrawer implements IFooterDrawer {
 
         initPaints();
         initTextRows();
-    }
-
-    public void setParams(float rectFooterThick, float bezierDragThreshold) {
-        this.bezierDragThreshold = bezierDragThreshold;
-        this.rotateThreshold = bezierDragThreshold * 0.9f;
-        this.rectFooterThick = rectFooterThick;
     }
 
     private void initTextRows() {
@@ -109,6 +114,11 @@ public class BezierFooterDrawer implements IFooterDrawer {
         textPaint.setTextSize(drawParams.textSize);
     }
 
+    @Override
+    public boolean shouldTriggerEvent(float dragDistance) {
+        return dragDistance > rotateThreshold;
+    }
+
     @DragContainer.DragState
     @Override
     public void updateDragState(int dragState) {
@@ -130,8 +140,8 @@ public class BezierFooterDrawer implements IFooterDrawer {
     }
 
     private void drawRect(Canvas canvas) {
-        if (footerRegion.right - footerRegion.left >= rectFooterThick) {
-            dragRect.set(footerRegion.right - rectFooterThick, 0, footerRegion.right, footerRegion.bottom);
+        if (footerRegion.right - footerRegion.left >= drawParams.rectFooterThick) {
+            dragRect.set(footerRegion.right - drawParams.rectFooterThick, 0, footerRegion.right, footerRegion.bottom);
         } else {
             dragRect.set(footerRegion.left, 0, footerRegion.right, footerRegion.bottom);
         }
@@ -149,16 +159,16 @@ public class BezierFooterDrawer implements IFooterDrawer {
     }
 
     private void setBezierParams() {
-        float sx = footerRegion.right - rectFooterThick;
+        float sx = footerRegion.right - drawParams.rectFooterThick;
         float sy = 0;
         float cy = (footerRegion.bottom - footerRegion.top) / 2;
         float cx;
-        if (footerRegion.right - footerRegion.left >= bezierDragThreshold) {
-            cx = footerRegion.right - bezierDragThreshold;
+        if (footerRegion.right - footerRegion.left >= drawParams.bezierDragThreshold) {
+            cx = footerRegion.right - drawParams.bezierDragThreshold;
         } else {
             cx = footerRegion.left;
         }
-        float ex = footerRegion.right - rectFooterThick;
+        float ex = footerRegion.right - drawParams.rectFooterThick;
         float ey = footerRegion.bottom;
 
         bezierParams[0] = sx;
@@ -170,7 +180,7 @@ public class BezierFooterDrawer implements IFooterDrawer {
     }
 
     private boolean shouldDrawBezier() {
-        return footerRegion.right - footerRegion.left >= rectFooterThick;
+        return footerRegion.right - footerRegion.left >= drawParams.rectFooterThick;
     }
 
     private void drawIcon(final Canvas canvas) {
@@ -303,6 +313,94 @@ public class BezierFooterDrawer implements IFooterDrawer {
         for (int i = 0; i < length; i++) {
             float yAxis = -(length - i - 1) * (-top + bottom) + offset;
             canvas.drawText(strings[i], x, y + yAxis, textPaint);
+        }
+    }
+
+    private int dp2px(Context context, float dpValue) {
+        final float scale = context.getResources().getDisplayMetrics().density;
+        return (int) (dpValue * scale + 0.5f);
+    }
+
+    private int sp2px(Context context, float spValue) {
+        final float fontScale = context.getResources().getDisplayMetrics().scaledDensity;
+        return (int) (spValue * fontScale + 0.5f);
+    }
+
+    public static class Builder {
+        private static final int DEFAULT_FOOTER_HEIGHT = 20;
+        private static final int DEFAULT_BEZIER_DRAG_THRESHOLD = 100;
+        private static final int DEFAULT_ICON_SIZE = 10;
+        private static final int DEFAULT_TEXT_ICON_GAP = 4;
+        private static final int DEFAULT_TEXT_SIZE = 10;
+        private static final int DEFAULT_TEXT_COLOR = 0xff222222;
+        private static final String DEFAULT_NORMAL_STRING = "释放查看";
+        private static final String DEFAULT_EVENT_STRING = "查看更多";
+
+        private Drawable iconDrawable;
+        private int textIconGap = DEFAULT_TEXT_ICON_GAP;
+        private String normalString = DEFAULT_NORMAL_STRING;
+        private String eventString = DEFAULT_EVENT_STRING;
+        private int textColor = DEFAULT_TEXT_COLOR;
+        private float textSize = DEFAULT_TEXT_SIZE;
+        private float iconSize = DEFAULT_ICON_SIZE;
+        public float bezierDragThreshold = DEFAULT_BEZIER_DRAG_THRESHOLD;
+        public float rectFooterThick = DEFAULT_FOOTER_HEIGHT;
+
+        public final int footerColor;
+        public final Context context;
+
+        public Builder(Context context, int footerColor) {
+            this.footerColor = footerColor;
+            this.context = context;
+        }
+
+        public Builder setBezierDragThreshold(float bezierDragThreshold) {
+            this.bezierDragThreshold = bezierDragThreshold;
+            return this;
+        }
+
+        public Builder setRectFooterThick(float rectFooterThick) {
+            this.rectFooterThick = rectFooterThick;
+            return this;
+        }
+
+        public Builder setTextIconGap(int textIconGap) {
+            this.textIconGap = textIconGap;
+            return this;
+        }
+
+        public Builder setNormalString(String normalString) {
+            this.normalString = normalString;
+            return this;
+        }
+
+        public Builder setEventString(String eventString) {
+            this.eventString = eventString;
+            return this;
+        }
+
+        public Builder setTextColor(int textColor) {
+            this.textColor = textColor;
+            return this;
+        }
+
+        public Builder setTextSize(float textSize) {
+            this.textSize = textSize;
+            return this;
+        }
+
+        public Builder setIconDrawable(Drawable iconDrawable) {
+            this.iconDrawable = iconDrawable;
+            return this;
+        }
+
+        public Builder setIconSize(float iconSize) {
+            this.iconSize = iconSize;
+            return this;
+        }
+
+        public BezierFooterDrawer build() {
+            return new BezierFooterDrawer(this);
         }
     }
 }

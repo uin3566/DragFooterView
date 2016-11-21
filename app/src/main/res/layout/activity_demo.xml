@@ -24,13 +24,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="10dp"
-                app:dc_bezier_threshold="100dp"
-                app:dc_footer_height="15dp"
-                app:dc_icon_drawable="@drawable/left"
-                app:dc_icon_size="10dp"
-                app:dc_reset_animator_duration="500"
-                app:dc_text_event="释放查看"
-                app:dc_text_normal="查看更多">
+                app:dc_reset_animator_duration="500">
 
                 <android.support.v7.widget.RecyclerView
                     android:id="@+id/recycler_view"
@@ -51,13 +45,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="10dp"
-                app:dc_bezier_threshold="100dp"
-                app:dc_footer_height="15dp"
-                app:dc_icon_drawable="@drawable/left"
-                app:dc_icon_size="10dp"
-                app:dc_reset_animator_duration="500"
-                app:dc_text_event="释放查看"
-                app:dc_text_normal="查看更多">
+                app:dc_reset_animator_duration="500">
 
                 <HorizontalScrollView
                     android:id="@+id/scroll_view"
@@ -87,14 +75,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="10dp"
-                app:dc_bezier_threshold="70dp"
                 app:dc_drag_damp="0.66"
-                app:dc_footer_height="15dp"
-                app:dc_icon_drawable="@drawable/left"
-                app:dc_icon_size="10dp"
-                app:dc_reset_animator_duration="500"
-                app:dc_text_event="释放查看"
-                app:dc_text_normal="查看更多">
+                app:dc_reset_animator_duration="500">
 
                 <ImageView
                     android:id="@+id/image_view"
@@ -123,14 +105,7 @@
                     android:layout_marginLeft="10dp"
                     android:layout_marginRight="10dp"
                     android:layout_weight="1"
-                    app:dc_bezier_threshold="50dp"
-                    app:dc_footer_height="10dp"
-                    app:dc_icon_drawable="@drawable/left"
-                    app:dc_icon_size="8dp"
-                    app:dc_reset_animator_duration="500"
-                    app:dc_text_event="释放查看"
-                    app:dc_text_normal="查看更多"
-                    app:dc_text_size="8sp">
+                    app:dc_reset_animator_duration="500">
 
                     <TextView
                         android:id="@+id/text_view"
@@ -149,14 +124,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginLeft="10dp"
                     android:layout_weight="1"
-                    app:dc_bezier_threshold="50dp"
-                    app:dc_footer_height="10dp"
-                    app:dc_icon_drawable="@drawable/left"
-                    app:dc_icon_size="8dp"
-                    app:dc_reset_animator_duration="500"
-                    app:dc_text_event="释放查看"
-                    app:dc_text_normal="查看更多"
-                    app:dc_text_size="8sp">
+                    app:dc_reset_animator_duration="500">
 
                     <Button
                         android:id="@+id/button"

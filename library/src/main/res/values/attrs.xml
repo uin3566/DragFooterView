@@ -2,18 +2,18 @@
 <resources>
 
     <declare-styleable name="DragContainer">
-        <attr name="dc_icon_drawable" format="reference"/>
-        <attr name="dc_icon_size" format="dimension|reference"/>
-        <attr name="dc_text_normal" format="string|reference"/>
-        <attr name="dc_text_event" format="string|reference"/>
-        <attr name="dc_text_size" format="dimension|reference"/>
-        <attr name="dc_text_color" format="color|reference"/>
-        <attr name="dc_text_icon_gap" format="dimension|reference"/>
-        <attr name="dc_footer_height" format="dimension|reference"/>
+        <!--<attr name="dc_icon_drawable" format="reference"/>-->
+        <!--<attr name="dc_icon_size" format="dimension|reference"/>-->
+        <!--<attr name="dc_text_normal" format="string|reference"/>-->
+        <!--<attr name="dc_text_event" format="string|reference"/>-->
+        <!--<attr name="dc_text_size" format="dimension|reference"/>-->
+        <!--<attr name="dc_text_color" format="color|reference"/>-->
+        <!--<attr name="dc_text_icon_gap" format="dimension|reference"/>-->
+        <!--<attr name="dc_footer_height" format="dimension|reference"/>-->
         <attr name="dc_footer_color" format="color|reference"/>
         <attr name="dc_reset_animator_duration" format="integer|reference"/>
         <attr name="dc_drag_damp" format="float|reference"/>
-        <attr name="dc_bezier_threshold" format="dimension|reference"/>
+        <!--<attr name="dc_bezier_threshold" format="dimension|reference"/>-->
     </declare-styleable>
 
 </resources>

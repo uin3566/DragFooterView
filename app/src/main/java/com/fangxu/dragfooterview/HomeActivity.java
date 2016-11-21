@@ -14,6 +14,7 @@ import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.fangxu.dragfooterview.adapter.HomeRecyclerAdapter;
+import com.fangxu.library.BezierFooterDrawer;
 import com.fangxu.library.DragContainer;
 import com.fangxu.library.DragListener;
 
@@ -46,6 +47,7 @@ public class HomeActivity extends AppCompatActivity implements DragListener {
         Glide.with(this).load(Constants.urls[0]).into(imageView);
 
         DragContainer dragContainer = (DragContainer) findViewById(R.id.drag_image_view);
+        dragContainer.setFooterDrawer(new BezierFooterDrawer.Builder(this, 0xffffc000).setIconDrawable(getResources().getDrawable(R.drawable.left)).build());
         dragContainer.setDragListener(this);
     }
 
