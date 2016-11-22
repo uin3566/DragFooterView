@@ -7,6 +7,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
+import android.util.Log;
 
 import com.fangxu.library.DimenUtil;
 import com.fangxu.library.DragContainer;
@@ -30,7 +31,6 @@ public class BezierFooterDrawer implements IFooterDrawer {
     private ValueAnimator iconRotateAnimator;
     private float rotateThreshold;
     private float iconRotateDegree = 0;
-    private boolean everRotatedIcon = false;
     private boolean dragOutRotateAnimatorExecuted = false;
     private boolean dragInRotateAnimatorExecuted = false;
 
@@ -125,7 +125,6 @@ public class BezierFooterDrawer implements IFooterDrawer {
     public void updateDragState(@DragContainer.DragState int dragState) {
         this.dragState = dragState;
         if (dragState == DragContainer.RELEASE) {
-            everRotatedIcon = excessRotateThreshold();
             dragOutRotateAnimatorExecuted = false;
             dragInRotateAnimatorExecuted = false;
         }
@@ -192,7 +191,7 @@ public class BezierFooterDrawer implements IFooterDrawer {
         setIconPosParams();
 
         if (dragState == DragContainer.RELEASE) {
-            if (everRotatedIcon && !dragInRotateAnimatorExecuted && !excessRotateThreshold()) {
+            if (excessRotateThreshold()) {
                 startIconRotateAnimator();
             }
         } else if (dragState == DragContainer.DRAG_OUT) {
@@ -200,7 +199,7 @@ public class BezierFooterDrawer implements IFooterDrawer {
                 startIconRotateAnimator();
             }
         } else {
-            if (!excessRotateThreshold() && !dragInRotateAnimatorExecuted) {
+            if (!excessRotateThreshold() && !dragInRotateAnimatorExecuted && dragOutRotateAnimatorExecuted) {
                 startIconRotateAnimator();
             }
         }
