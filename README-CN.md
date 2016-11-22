@@ -26,7 +26,7 @@
 * step2:Add the dependency:
 ```
     dependencies {
-        compile 'com.github.uin3566:DragFooterView:v1.0.0'
+        compile 'com.github.uin3566:DragFooterView:v1.0.1'
     }
 ```
 
