@@ -1,4 +1,4 @@
-package com.fangxu.library;
+package com.fangxu.library.footer;
 
 import android.animation.ValueAnimator;
 import android.content.Context;
@@ -7,7 +7,9 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
-import android.util.Log;
+
+import com.fangxu.library.DimenUtil;
+import com.fangxu.library.DragContainer;
 
 /**
  * Created by Administrator on 2016/11/17.
@@ -36,33 +38,33 @@ public class BezierFooterDrawer implements IFooterDrawer {
     private float[] iconParams;
     private String[] textRows;
 
-    public static class DrawParams {
-        public int textIconGap;
-        public String normalString;
-        public String eventString;
+    private static class DrawParams {
+        int textIconGap;
+        String normalString;
+        String eventString;
         public int textColor;
-        public float textSize;
-        public Drawable iconDrawable;
-        public float iconSize;
-        public float bezierDragThreshold;
-        public float rectFooterThick;
-        public int footerColor;
+        float textSize;
+        Drawable iconDrawable;
+        float iconSize;
+        float bezierDragThreshold;
+        float rectFooterThick;
+        int footerColor;
     }
 
     private BezierFooterDrawer(Builder builder) {
         footerRegion = new RectF();
         drawParams = new DrawParams();
         Context context = builder.context;
-        drawParams.textSize = sp2px(context, builder.textSize);
-        drawParams.textIconGap = dp2px(context, builder.textIconGap);
+        drawParams.textSize = DimenUtil.sp2px(context, builder.textSize);
+        drawParams.textIconGap = DimenUtil.dp2px(context, builder.textIconGap);
         drawParams.textColor = builder.textColor;
         drawParams.normalString = builder.normalString;
         drawParams.eventString = builder.eventString;
         drawParams.iconDrawable = builder.iconDrawable;
-        drawParams.iconSize = dp2px(context, builder.iconSize);
-        drawParams.bezierDragThreshold = dp2px(context, builder.bezierDragThreshold);
+        drawParams.iconSize = DimenUtil.dp2px(context, builder.iconSize);
+        drawParams.bezierDragThreshold = DimenUtil.dp2px(context, builder.bezierDragThreshold);
         rotateThreshold = drawParams.bezierDragThreshold * 0.9f;
-        drawParams.rectFooterThick = dp2px(context, builder.rectFooterThick);
+        drawParams.rectFooterThick = DimenUtil.dp2px(context, builder.rectFooterThick);
         drawParams.footerColor = builder.footerColor;
 
         //store bezier params, params[0] = sx,params[1] = sy, params[2] = cx,params[3] = cy, params[4] = ex,params[5] = ey
@@ -119,9 +121,8 @@ public class BezierFooterDrawer implements IFooterDrawer {
         return dragDistance > rotateThreshold;
     }
 
-    @DragContainer.DragState
     @Override
-    public void updateDragState(int dragState) {
+    public void updateDragState(@DragContainer.DragState int dragState) {
         this.dragState = dragState;
         if (dragState == DragContainer.RELEASE) {
             everRotatedIcon = excessRotateThreshold();
@@ -314,16 +315,6 @@ public class BezierFooterDrawer implements IFooterDrawer {
             float yAxis = -(length - i - 1) * (-top + bottom) + offset;
             canvas.drawText(strings[i], x, y + yAxis, textPaint);
         }
-    }
-
-    private int dp2px(Context context, float dpValue) {
-        final float scale = context.getResources().getDisplayMetrics().density;
-        return (int) (dpValue * scale + 0.5f);
-    }
-
-    private int sp2px(Context context, float spValue) {
-        final float fontScale = context.getResources().getDisplayMetrics().scaledDensity;
-        return (int) (spValue * fontScale + 0.5f);
     }
 
     public static class Builder {

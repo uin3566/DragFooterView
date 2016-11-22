@@ -7,9 +7,13 @@ import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
 import android.support.annotation.IntDef;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+
+import com.fangxu.library.footer.BezierFooterDrawer;
+import com.fangxu.library.footer.IFooterDrawer;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -183,7 +187,6 @@ public class DragContainer extends ViewGroup {
         shouldResetContentView = true;
         contentView.setLeft(left);
         contentView.setRight(right);
-        invalidate();
     }
 
     @Override
@@ -211,6 +214,7 @@ public class DragContainer extends ViewGroup {
                     getParent().requestDisallowInterceptTouchEvent(false);
                 }
 
+                Log.i(TAG, "dispatchTouchEvent dragState=" + getDragState());
                 if (dragDx <= 0 && dragChecker.canDrag(contentView)) {
                     updateDragState(event);
                     dragDx = event.getX() - downX;
@@ -229,6 +233,7 @@ public class DragContainer extends ViewGroup {
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
         if (ev.getAction() == MotionEvent.ACTION_MOVE) {
+            Log.i(TAG, "onInterceptTouchEvent dragState=" + getDragState());
             if (getDragState() != RELEASE) {
                 return true;
             }

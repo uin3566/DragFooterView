@@ -11,7 +11,6 @@ import android.widget.HorizontalScrollView;
  * Created by dear33 on 2016/11/12.
  */
 public class DefaultDragChecker implements IDragChecker {
-
     @Override
     public boolean canDrag(View childView) {
         if (childView instanceof RecyclerView) {

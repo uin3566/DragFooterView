@@ -1,4 +1,4 @@
-package com.fangxu.library;
+package com.fangxu.library.footer;
 
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;

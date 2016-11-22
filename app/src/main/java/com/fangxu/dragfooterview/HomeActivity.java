@@ -14,7 +14,7 @@ import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.fangxu.dragfooterview.adapter.HomeRecyclerAdapter;
-import com.fangxu.library.BezierFooterDrawer;
+import com.fangxu.library.footer.BezierFooterDrawer;
 import com.fangxu.library.DragContainer;
 import com.fangxu.library.DragListener;
 
