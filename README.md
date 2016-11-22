@@ -34,14 +34,7 @@ A ViewGroup with a draggable footer
         android:id="@+id/drag_recycler_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="10dp"
-        app:dc_bezier_threshold="100dp"
-        app:dc_footer_height="15dp"
-        app:dc_icon_drawable="@drawable/left"
-        app:dc_icon_size="10dp"
-        app:dc_reset_animator_duration="500"
-        app:dc_text_event="释放查看"
-        app:dc_text_normal="查看更多">
+        android:layout_marginLeft="10dp">
 
         <android.support.v7.widget.RecyclerView
             android:id="@+id/recycler_view"
@@ -68,18 +61,9 @@ all of the attributes are listed below:
 
 |attribute|value type|defalut value| description|
 | --- | --- | --- | --- |
-|dc_icon_drawable| reference| None|the icon show in footer|
-|dc_icon_size|dimension|15dp|the icon size show in footer|
-|dc_text_normal|string|None|the text string show in footer while release will not trigger DragListener|
-|dc_text_event| string| None|the text string show in footer while release will trigger DragListener|
-|dc_text_size|dimension|10sp|the size of footer text|
-|dc_text_color|color|0xff222222|the color of footer text|
-|dc_text_icon_gap|dimension|4dp|the distance of footer icon and footer text|
-|dc_footer_height|dimension|30dp|the thickness of the footer rectangle part|
 |dc_footer_color|color|0xffcdcdcd|the color of footer background|
 |dc_reset_animator_duration|integer|700|the reset animator duration in milliseconds|
 |dc_drag_damp|float|0.5f|the drag damp,should be set in range (0,1],set it smaller will drag more difficultly|
-|dc_bezier_threshold|dimension|120dp|if the drag distance bigger than it, the bezier path will not change any more|
 
 
 ###License
