@@ -37,14 +37,7 @@
         android:id="@+id/drag_recycler_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="10dp"
-        app:dc_bezier_threshold="100dp"
-        app:dc_footer_height="15dp"
-        app:dc_icon_drawable="@drawable/left"
-        app:dc_icon_size="10dp"
-        app:dc_reset_animator_duration="500"
-        app:dc_text_event="释放查看"
-        app:dc_text_normal="查看更多">
+        android:layout_marginLeft="10dp">
 
         <android.support.v7.widget.RecyclerView
             android:id="@+id/recycler_view"
@@ -69,18 +62,9 @@
 ## 属性
 |attribute|value type|defalut value| description|
 | --- | --- | --- | --- |
-|dc_icon_drawable| reference| None|在footer view中显示的图标|
-|dc_icon_size|dimension|15dp|footer view中图标的大小|
-|dc_text_normal|string|None|此时松开拖拽不会触发DragListener监听器时在footer view中显示的文字|
-|dc_text_event| string| None|此时松开拖拽会触发DragListener监听器时在footer view中显示的文字|
-|dc_text_size|dimension|10sp|footer view中文字大小|
-|dc_text_color|color|0xff222222|footer view中文字颜色|
-|dc_text_icon_gap|dimension|4dp|footer view中文字，图标之间的距离|
-|dc_footer_height|dimension|30dp|footer view中矩形部分的厚度|
 |dc_footer_color|color|0xffcdcdcd|footer view的背景颜色|
 |dc_reset_animator_duration|integer|700|松开拖拽后复位动画的时长|
 |dc_drag_damp|float|0.5f|拖拽阻尼系数，取值在(0,1]之间，取值越小，阻尼越大|
-|dc_bezier_threshold|dimension|120dp|使footer view变形的拖拽距离阈值，当拖拽距离大于该变量是，footer view不再变形|
 
 
 ## License
