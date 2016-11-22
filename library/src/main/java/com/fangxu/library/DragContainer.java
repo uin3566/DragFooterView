@@ -7,9 +7,9 @@ import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
 import android.support.annotation.IntDef;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 
 import com.fangxu.library.footer.BezierFooterDrawer;
@@ -198,6 +198,10 @@ public class DragContainer extends ViewGroup {
         //dispatch event to child
         super.dispatchTouchEvent(event);
 
+        if (!dragChecker.canDrag(contentView)) {
+            return true;
+        }
+
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 dragDx = 0;
@@ -214,9 +218,12 @@ public class DragContainer extends ViewGroup {
                     getParent().requestDisallowInterceptTouchEvent(false);
                 }
 
-                Log.i(TAG, "dispatchTouchEvent dragState=" + getDragState());
                 if (dragDx <= 0 && dragChecker.canDrag(contentView)) {
                     updateDragState(event);
+                    if (dragDx != 0) {
+                        //when is drag state, consume event self and send cancel event to child view
+                        sendCancelEvent(event);
+                    }
                     dragDx = event.getX() - downX;
                     float realDragDistance = dragDx * dragDamp;
                     setContentView((int) realDragDistance, 0, containerWidth + (int) realDragDistance, containerHeight);
@@ -230,15 +237,10 @@ public class DragContainer extends ViewGroup {
         return true;
     }
 
-    @Override
-    public boolean onInterceptTouchEvent(MotionEvent ev) {
-        if (ev.getAction() == MotionEvent.ACTION_MOVE) {
-            Log.i(TAG, "onInterceptTouchEvent dragState=" + getDragState());
-            if (getDragState() != RELEASE) {
-                return true;
-            }
-        }
-        return super.onInterceptTouchEvent(ev);
+    private void sendCancelEvent(MotionEvent event) {
+        MotionEvent cancel = MotionEvent.obtain(event.getDownTime(), event.getEventTime() + ViewConfiguration.getLongPressTimeout()
+                , MotionEvent.ACTION_CANCEL, event.getX(), event.getY(), event.getMetaState());
+        super.dispatchTouchEvent(cancel);
     }
 
     private void updateDragState(MotionEvent event) {
