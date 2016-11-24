@@ -13,7 +13,8 @@ import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 
 import com.fangxu.library.footer.BezierFooterDrawer;
-import com.fangxu.library.footer.IFooterDrawer;
+import com.fangxu.library.footer.BaseFooterDrawer;
+import com.fangxu.library.footer.NormalFooterDrawer;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -34,8 +35,6 @@ public class DragContainer extends ViewGroup {
     public @interface DragState {
 
     }
-
-    private int dragState;
 
     private View contentView;
     private DragListener dragListener;
@@ -60,7 +59,7 @@ public class DragContainer extends ViewGroup {
     private float dragDx;
     private float lastMoveX;
 
-    private IFooterDrawer footerDrawer;
+    private BaseFooterDrawer footerDrawer;
 
     public DragContainer(Context context) {
         this(context, null);
@@ -99,11 +98,11 @@ public class DragContainer extends ViewGroup {
         setDragState(RELEASE);
     }
 
-    private IFooterDrawer defaultFooterDrawer() {
+    private BaseFooterDrawer defaultFooterDrawer() {
         return new BezierFooterDrawer.Builder(getContext(), footerColor).setIconDrawable(getContext().getResources().getDrawable(R.drawable.left)).build();
     }
 
-    public void setFooterDrawer(IFooterDrawer footerDrawer) {
+    public void setFooterDrawer(BaseFooterDrawer footerDrawer) {
         this.footerDrawer = footerDrawer;
     }
 
@@ -114,13 +113,7 @@ public class DragContainer extends ViewGroup {
         }
     }
 
-    @DragState
-    private int getDragState() {
-        return dragState;
-    }
-
     private void setDragState(@DragState int dragState) {
-        this.dragState = dragState;
         if (footerDrawer != null) {
             footerDrawer.updateDragState(dragState);
         }

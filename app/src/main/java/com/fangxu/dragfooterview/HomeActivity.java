@@ -17,6 +17,7 @@ import com.fangxu.dragfooterview.adapter.HomeRecyclerAdapter;
 import com.fangxu.library.footer.BezierFooterDrawer;
 import com.fangxu.library.DragContainer;
 import com.fangxu.library.DragListener;
+import com.fangxu.library.footer.NormalFooterDrawer;
 
 /**
  * Created by dear33 on 2016/11/12.
@@ -84,6 +85,7 @@ public class HomeActivity extends AppCompatActivity implements DragListener {
         recyclerView.setAdapter(adapter);
 
         DragContainer dragContainer = (DragContainer) findViewById(R.id.drag_recycler_view);
+        dragContainer.setFooterDrawer(new NormalFooterDrawer.Builder(this, 0xffffc000).setIconDrawable(getResources().getDrawable(R.drawable.left_2)).build());
         dragContainer.setDragListener(this);
     }
 

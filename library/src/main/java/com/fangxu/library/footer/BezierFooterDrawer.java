@@ -1,13 +1,11 @@
 package com.fangxu.library.footer;
 
-import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
-import android.util.Log;
 
 import com.fangxu.library.DimenUtil;
 import com.fangxu.library.DragContainer;
@@ -15,11 +13,8 @@ import com.fangxu.library.DragContainer;
 /**
  * Created by Administrator on 2016/11/17.
  */
-public class BezierFooterDrawer implements IFooterDrawer {
-    private RectF footerRegion;
+public class BezierFooterDrawer extends BaseFooterDrawer {
     private DrawParams drawParams;
-
-    private int dragState;
 
     private Paint rectPaint;
     private Paint bezierPaint;
@@ -28,15 +23,12 @@ public class BezierFooterDrawer implements IFooterDrawer {
     private RectF dragRect;
     private float tmpIconPos;
 
-    private ValueAnimator iconRotateAnimator;
-    private float rotateThreshold;
-    private float iconRotateDegree = 0;
-    private boolean dragOutRotateAnimatorExecuted = false;
-    private boolean dragInRotateAnimatorExecuted = false;
-
     private float[] bezierParams;
     private float[] iconParams;
     private String[] textRows;
+
+    private IconRotateController iconRotateController;
+    private float rotateThreshold;
 
     private static class DrawParams {
         int textIconGap;
@@ -48,11 +40,11 @@ public class BezierFooterDrawer implements IFooterDrawer {
         float iconSize;
         float bezierDragThreshold;
         float rectFooterThick;
-        int footerColor;
     }
 
     private BezierFooterDrawer(Builder builder) {
         footerRegion = new RectF();
+
         drawParams = new DrawParams();
         Context context = builder.context;
         drawParams.textSize = DimenUtil.sp2px(context, builder.textSize);
@@ -63,9 +55,13 @@ public class BezierFooterDrawer implements IFooterDrawer {
         drawParams.iconDrawable = builder.iconDrawable;
         drawParams.iconSize = DimenUtil.dp2px(context, builder.iconSize);
         drawParams.bezierDragThreshold = DimenUtil.dp2px(context, builder.bezierDragThreshold);
-        rotateThreshold = drawParams.bezierDragThreshold * 0.9f;
         drawParams.rectFooterThick = DimenUtil.dp2px(context, builder.rectFooterThick);
-        drawParams.footerColor = builder.footerColor;
+
+        rotateThreshold = drawParams.bezierDragThreshold * 0.9f;
+
+        iconRotateController = new IconRotateController(rotateThreshold, builder.iconRotateDuration);
+
+        footerColor = builder.footerColor;
 
         //store bezier params, params[0] = sx,params[1] = sy, params[2] = cx,params[3] = cy, params[4] = ex,params[5] = ey
         //sx:bezier start point x
@@ -99,13 +95,13 @@ public class BezierFooterDrawer implements IFooterDrawer {
 
     private void initPaints() {
         rectPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        rectPaint.setColor(drawParams.footerColor);
+        rectPaint.setColor(footerColor);
         rectPaint.setStyle(Paint.Style.FILL);
 
         dragRect = new RectF();
 
         bezierPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        bezierPaint.setColor(drawParams.footerColor);
+        bezierPaint.setColor(footerColor);
         bezierPaint.setStyle(Paint.Style.FILL);
 
         bezierPath = new Path();
@@ -123,16 +119,15 @@ public class BezierFooterDrawer implements IFooterDrawer {
 
     @Override
     public void updateDragState(@DragContainer.DragState int dragState) {
-        this.dragState = dragState;
+        super.updateDragState(dragState);
         if (dragState == DragContainer.RELEASE) {
-            dragOutRotateAnimatorExecuted = false;
-            dragInRotateAnimatorExecuted = false;
+            iconRotateController.reset();
         }
     }
 
     @Override
     public void drawFooter(Canvas canvas, float left, float top, float right, float bottom) {
-        footerRegion.set(left, top, right, bottom);
+        super.drawFooter(canvas, left, top, right, bottom);
         drawRect(canvas);
         drawBezier(canvas);
         drawIcon(canvas);
@@ -140,7 +135,7 @@ public class BezierFooterDrawer implements IFooterDrawer {
     }
 
     private void drawRect(Canvas canvas) {
-        if (footerRegion.right - footerRegion.left >= drawParams.rectFooterThick) {
+        if (getDraggedDistance() >= drawParams.rectFooterThick) {
             dragRect.set(footerRegion.right - drawParams.rectFooterThick, 0, footerRegion.right, footerRegion.bottom);
         } else {
             dragRect.set(footerRegion.left, 0, footerRegion.right, footerRegion.bottom);
@@ -163,7 +158,7 @@ public class BezierFooterDrawer implements IFooterDrawer {
         float sy = 0;
         float cy = (footerRegion.bottom - footerRegion.top) / 2;
         float cx;
-        if (footerRegion.right - footerRegion.left >= drawParams.bezierDragThreshold) {
+        if (getDraggedDistance() >= drawParams.bezierDragThreshold) {
             cx = footerRegion.right - drawParams.bezierDragThreshold;
         } else {
             cx = footerRegion.left;
@@ -180,7 +175,7 @@ public class BezierFooterDrawer implements IFooterDrawer {
     }
 
     private boolean shouldDrawBezier() {
-        return footerRegion.right - footerRegion.left >= drawParams.rectFooterThick;
+        return getDraggedDistance() >= drawParams.rectFooterThick;
     }
 
     private void drawIcon(final Canvas canvas) {
@@ -189,52 +184,16 @@ public class BezierFooterDrawer implements IFooterDrawer {
         }
 
         setIconPosParams();
-
-        if (dragState == DragContainer.RELEASE) {
-            if (excessRotateThreshold()) {
-                startIconRotateAnimator();
-            }
-        } else if (dragState == DragContainer.DRAG_OUT) {
-            if (excessRotateThreshold() && !dragOutRotateAnimatorExecuted) {
-                startIconRotateAnimator();
-            }
-        } else {
-            if (!excessRotateThreshold() && !dragInRotateAnimatorExecuted && dragOutRotateAnimatorExecuted) {
-                startIconRotateAnimator();
-            }
-        }
+        iconRotateController.calculateRotateDegree(dragState, getDraggedDistance());
 
         canvas.save();
-        canvas.rotate(iconRotateDegree, getIconRotateX(drawParams.iconSize), getIconRotateY());
+        float degree = iconRotateController.getRotateDegree();
+        canvas.rotate(degree, getIconRotateX(drawParams.iconSize), getIconRotateY());
 
         drawParams.iconDrawable.setBounds((int) iconParams[0], (int) iconParams[1], (int) iconParams[2], (int) iconParams[3]);
         drawParams.iconDrawable.draw(canvas);
 
         canvas.restore();
-    }
-
-    private void startIconRotateAnimator() {
-        int duration = 100;
-        if (iconRotateAnimator != null && iconRotateAnimator.isRunning()) {
-            iconRotateAnimator.cancel();
-        }
-        if (dragState == DragContainer.DRAG_OUT) {
-            dragOutRotateAnimatorExecuted = true;
-            dragInRotateAnimatorExecuted = false;
-            iconRotateAnimator = ValueAnimator.ofFloat(0.0f, 1.0f);
-        } else {
-            dragInRotateAnimatorExecuted = true;
-            dragOutRotateAnimatorExecuted = false;
-            iconRotateAnimator = ValueAnimator.ofFloat(1.0f, 0.0f);
-        }
-        iconRotateAnimator.setDuration(duration);
-        iconRotateAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-            @Override
-            public void onAnimationUpdate(ValueAnimator animation) {
-                iconRotateDegree = (float) animation.getAnimatedValue() * 180;
-            }
-        });
-        iconRotateAnimator.start();
     }
 
     private float getIconRotateX(float drawableSize) {
@@ -246,16 +205,12 @@ public class BezierFooterDrawer implements IFooterDrawer {
         return (footerRegion.bottom - footerRegion.top) / 2;
     }
 
-    private boolean excessRotateThreshold() {
-        return footerRegion.right - footerRegion.left > rotateThreshold;
-    }
-
     private void setIconPosParams() {
         float top = getIconRotateY() - drawParams.iconSize / 2;
         float bottom = top + drawParams.iconSize;
         float left, right;
-        if (footerRegion.right - footerRegion.left <= rotateThreshold) {
-            left = footerRegion.left + (footerRegion.right - footerRegion.left) / 2;
+        if (getDraggedDistance() <= rotateThreshold) {
+            left = footerRegion.left + (getDraggedDistance()) / 2;
             right = left + drawParams.iconSize;
             tmpIconPos = left;
         } else {
@@ -267,6 +222,10 @@ public class BezierFooterDrawer implements IFooterDrawer {
         iconParams[1] = top;
         iconParams[2] = right;
         iconParams[3] = bottom;
+    }
+
+    private float getDraggedDistance() {
+        return footerRegion.right - footerRegion.left;
     }
 
     private void drawText(Canvas canvas) {
@@ -294,7 +253,7 @@ public class BezierFooterDrawer implements IFooterDrawer {
         }
 
         String tmp;
-        tmp = excessRotateThreshold() ? drawParams.eventString : drawParams.normalString;
+        tmp = (getDraggedDistance() > rotateThreshold) ? drawParams.eventString : drawParams.normalString;
         for (int i = 0; i < tmp.length(); i++) {
             textRows[i] = String.valueOf(tmp.charAt(i));
         }
@@ -323,10 +282,12 @@ public class BezierFooterDrawer implements IFooterDrawer {
         private static final int DEFAULT_TEXT_ICON_GAP = 4;
         private static final int DEFAULT_TEXT_SIZE = 10;
         private static final int DEFAULT_TEXT_COLOR = 0xff222222;
+        private static final int DEFAULT_ICON_ROTATE_DURATION = 100;
         private static final String DEFAULT_NORMAL_STRING = "释放查看";
         private static final String DEFAULT_EVENT_STRING = "查看更多";
 
         private Drawable iconDrawable;
+        private int iconRotateDuration = DEFAULT_ICON_ROTATE_DURATION;
         private int textIconGap = DEFAULT_TEXT_ICON_GAP;
         private String normalString = DEFAULT_NORMAL_STRING;
         private String eventString = DEFAULT_EVENT_STRING;
@@ -342,6 +303,11 @@ public class BezierFooterDrawer implements IFooterDrawer {
         public Builder(Context context, int footerColor) {
             this.footerColor = footerColor;
             this.context = context;
+        }
+
+        public Builder setIconRotateDuration(int iconRotateDuration) {
+            this.iconRotateDuration = iconRotateDuration;
+            return this;
         }
 
         public Builder setBezierDragThreshold(float bezierDragThreshold) {
