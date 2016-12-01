@@ -218,7 +218,7 @@ public class DragContainer extends ViewGroup {
                         sendCancelEvent(event);
                     }
                     dragDx = event.getX() - downX;
-                    float realDragDistance = dragDx * dragDamp;
+                    float realDragDistance = dragDx;
                     setContentView((int) realDragDistance, 0, containerWidth + (int) realDragDistance, containerHeight);
                 }
                 break;

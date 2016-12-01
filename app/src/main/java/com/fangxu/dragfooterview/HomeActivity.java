@@ -14,6 +14,7 @@ import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.fangxu.dragfooterview.adapter.HomeRecyclerAdapter;
+import com.fangxu.library.footer.ArrowPathFooterDrawer;
 import com.fangxu.library.footer.BezierFooterDrawer;
 import com.fangxu.library.DragContainer;
 import com.fangxu.library.DragListener;
@@ -103,6 +104,7 @@ public class HomeActivity extends AppCompatActivity implements DragListener {
         }
 
         DragContainer dragContainer = (DragContainer) findViewById(R.id.drag_scroll_view);
+        dragContainer.setFooterDrawer(new ArrowPathFooterDrawer());
         dragContainer.setDragListener(this);
     }
 
