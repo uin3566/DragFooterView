@@ -1,9 +1,10 @@
 # DragFooterView
 
-![](https://jitpack.io/v/uin3566/DragFooterView.svg)  
- 自带拖拽效果的ViewGroup，如下
+![](https://jitpack.io/v/uin3566/DragFooterView.svg)    
+一个向左拖拽跳转至更多页面的通用控件    
 
-![screenshot](/screenshot/demo.gif)  
+## Demo
+![screenshot](/screenshot/demo.gif)
  
  
 ## 灵感来源
@@ -12,6 +13,14 @@
  也涉及到了View的事件分发，正好借机巩固了一把这些知识，
  功力又深了一层，哈^_^。
 ![screenshot](/screenshot/inspiration.gif)  
+
+## 自定义你自己的Footer效果   
+作为一个library，当然不能只支持以上那一种效果啦，所以，这个库的
+Footer应该是可定制的，可插拔的。定制Footer只需定义一个继承自
+BaseFooterDrawer的类，然后在参数中提供的区域中绘制即可，而其余
+的事件分发，拦截都不需要关心。以下是我自己定制的两种Footer效果。    
+![screenshot](/screenshot/custom1.gif)    
+![screenshot](/screenshot/custom2.gif) 
 
 ## 添加依赖
 * step1:Add it in your root build.gradle at the end of repositories:
@@ -49,7 +58,11 @@
 2、在java类中添加事件监听器DragListener
 ```java
     DragContainer dragContainer = (DragContainer) findViewById(R.id.drag_image_view);
-    dragContainer.setDragListener(new DragListener() {
+    
+    //若需使用自己定制的footer，需要调用DragContainer的setFooterDrawer方法设置定制的footer类，如下
+    dragContainer.setFooterDrawer(new ArrowPathFooterDrawer.Builder(this, 0xff444444).setPathColor(0xffffffff).build());
+    
+    dragContainer.setDragListener(new DragListener() {
         @Override
         public void onDragEvent() {
             //do whatever you want,for example skip to the load more Activity.
