@@ -14,7 +14,6 @@ import android.view.ViewGroup;
 
 import com.fangxu.library.footer.BezierFooterDrawer;
 import com.fangxu.library.footer.BaseFooterDrawer;
-import com.fangxu.library.footer.NormalFooterDrawer;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -218,7 +217,7 @@ public class DragContainer extends ViewGroup {
                         sendCancelEvent(event);
                     }
                     dragDx = event.getX() - downX;
-                    float realDragDistance = dragDx;
+                    float realDragDistance = dragDx * dragDamp;
                     setContentView((int) realDragDistance, 0, containerWidth + (int) realDragDistance, containerHeight);
                 }
                 break;
