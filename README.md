@@ -56,7 +56,7 @@ BaseFooterDrawer class, and draw the footer in footerRegion rectf.
     DragContainer dragContainer = (DragContainer) findViewById(R.id.drag_image_view);
     
     //if you want to use your own custom footer, you should set your own footer to
-    the DragContainer like this
+    //the DragContainer like this
     dragContainer.setFooterDrawer(new ArrowPathFooterDrawer.Builder(this, 0xff444444).setPathColor(0xffffffff).build());
     
     //set listener
