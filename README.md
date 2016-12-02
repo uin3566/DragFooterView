@@ -5,10 +5,18 @@
 ![](https://jitpack.io/v/uin3566/DragFooterView.svg)  
 A ViewGroup with a draggable footer
 
+### Demo gif
 ![screenshot](/screenshot/demo.gif)
 
 ### Inspired by
 ![screenshot](/screenshot/inspiration.gif) 
+
+### Customize your own footers
+As a flexible library, it should not has only one footer effect, so you can custom your own footer effect,
+below is my custom footer effect, you can get it in demo code. To custom footer view, you should only inherit
+BaseFooterDrawer class, and draw the footer in footerRegion rectf.  
+![screenshot](/screenshot/custom1.gif)    
+![screenshot](/screenshot/custom2.gif) 
 
 ### Add to your project
 * step1:Add it in your root build.gradle at the end of repositories:
@@ -46,7 +54,13 @@ A ViewGroup with a draggable footer
 2、in java code,add DragListener
 ```java
     DragContainer dragContainer = (DragContainer) findViewById(R.id.drag_image_view);
-    dragContainer.setDragListener(new DragListener() {
+    
+    //if you want to use your own custom footer, you should set your own footer to
+    the DragContainer like this
+    dragContainer.setFooterDrawer(new ArrowPathFooterDrawer.Builder(this, 0xff444444).setPathColor(0xffffffff).build());
+    
+    //set listener
+    dragContainer.setDragListener(new DragListener() {
         @Override
         public void onDragEvent() {
             //do whatever you want,for example skip to the load more Activity.
