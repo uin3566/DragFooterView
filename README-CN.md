@@ -1,4 +1,6 @@
-# DragFooterView
+# DragFooterView    
+
+[English README](https://github.com/uin3566/DragFooterView/blob/master/README.md) 
 
 ![](https://jitpack.io/v/uin3566/DragFooterView.svg)    
 一个向左拖拽跳转至更多页面的通用控件    
@@ -18,7 +20,7 @@
 作为一个library，当然不能只支持以上那一种效果啦，所以，这个库的
 Footer应该是可定制的，可插拔的。定制Footer只需定义一个继承自
 BaseFooterDrawer的类，然后在参数中提供的区域中绘制即可，而其余
-的事件分发，拦截都不需要关心。以下是我自己定制的两种Footer效果。
+的事件分发，拦截都不需要关心。以下是我自己定制的两种Footer效果。     
 ![screenshot](/screenshot/custom2.gif)     
 ![screenshot](/screenshot/custom1.gif)    
 
