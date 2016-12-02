@@ -35,7 +35,7 @@ BaseFooterDrawer的类，然后在参数中提供的区域中绘制即可，而�
 * step2:Add the dependency:
 ```
     dependencies {
-        compile 'com.github.uin3566:DragFooterView:v1.0.1'
+        compile 'com.github.uin3566:DragFooterView:v1.0.2'
     }
 ```
 
