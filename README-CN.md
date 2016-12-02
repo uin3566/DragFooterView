@@ -18,9 +18,9 @@
 作为一个library，当然不能只支持以上那一种效果啦，所以，这个库的
 Footer应该是可定制的，可插拔的。定制Footer只需定义一个继承自
 BaseFooterDrawer的类，然后在参数中提供的区域中绘制即可，而其余
-的事件分发，拦截都不需要关心。以下是我自己定制的两种Footer效果。    
+的事件分发，拦截都不需要关心。以下是我自己定制的两种Footer效果。
+![screenshot](/screenshot/custom2.gif)     
 ![screenshot](/screenshot/custom1.gif)    
-![screenshot](/screenshot/custom2.gif) 
 
 ## 添加依赖
 * step1:Add it in your root build.gradle at the end of repositories:
