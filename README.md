@@ -31,7 +31,7 @@ BaseFooterDrawer class, and draw the footer in footerRegion rectf.
 * step2:Add the dependency:
 ```
     dependencies {
-        compile 'com.github.uin3566:DragFooterView:v1.0.1'
+        compile 'com.github.uin3566:DragFooterView:v1.0.2'
     }
 ```
 
