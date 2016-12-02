@@ -15,8 +15,8 @@ A ViewGroup with a draggable footer
 As a flexible library, it should not has only one footer effect, so you can custom your own footer effect,
 below is my custom footer effect, you can get it in demo code. To custom footer view, you should only inherit
 BaseFooterDrawer class, and draw the footer in footerRegion rectf.  
+![screenshot](/screenshot/custom2.gif)    
 ![screenshot](/screenshot/custom1.gif)    
-![screenshot](/screenshot/custom2.gif) 
 
 ### Add to your project
 * step1:Add it in your root build.gradle at the end of repositories:
