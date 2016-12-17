@@ -87,7 +87,7 @@ public class HomeActivity extends AppCompatActivity implements DragListener {
         recyclerView.setAdapter(adapter);
 
         DragContainer dragContainer = (DragContainer) findViewById(R.id.drag_recycler_view);
-        dragContainer.setFooterDrawer(new NormalFooterDrawer.Builder(this, 0xffffc000).setIconDrawable(getResources().getDrawable(R.drawable.left_2)).build());
+//        dragContainer.setFooterDrawer(new NormalFooterDrawer.Builder(this, 0xffffc000).setIconDrawable(getResources().getDrawable(R.drawable.left_2)).build());
         dragContainer.setDragListener(this);
     }
 

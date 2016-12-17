@@ -10,7 +10,7 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
-import android.view.ViewGroup;
+import android.widget.FrameLayout;
 
 import com.fangxu.library.footer.BezierFooterDrawer;
 import com.fangxu.library.footer.BaseFooterDrawer;
@@ -21,7 +21,7 @@ import java.lang.annotation.RetentionPolicy;
 /**
  * Created by Administrator on 2016/10/31.
  */
-public class DragContainer extends ViewGroup {
+public class DragContainer extends FrameLayout {
 
     private static final String TAG = "DragContainer";
 
@@ -170,15 +170,14 @@ public class DragContainer extends ViewGroup {
         }
     }
 
-    private void setContentView(int left, int top, int right, int bottom) {
+    private void setContentViewPosition(int left, int top, int right, int bottom) {
         shouldResetContentView = false;
         if (right > containerWidth) {
             return;
         }
 
         shouldResetContentView = true;
-        contentView.setLeft(left);
-        contentView.setRight(right);
+        contentView.layout(left, top, right, bottom);
     }
 
     @Override
@@ -218,7 +217,7 @@ public class DragContainer extends ViewGroup {
                     }
                     dragDx = event.getX() - downX;
                     float realDragDistance = dragDx * dragDamp;
-                    setContentView((int) realDragDistance, 0, containerWidth + (int) realDragDistance, containerHeight);
+                    setContentViewPosition((int) realDragDistance, 0, containerWidth + (int) realDragDistance, containerHeight);
                 }
                 break;
             case MotionEvent.ACTION_CANCEL:
@@ -267,7 +266,7 @@ public class DragContainer extends ViewGroup {
                 float progress = (float) animation.getAnimatedValue();
                 float currentDx;
                 currentDx = totalDx * progress;
-                setContentView(left + (int) currentDx, top, right + (int) currentDx, bottom);
+                setContentViewPosition(left + (int) currentDx, top, right + (int) currentDx, bottom);
             }
         });
         resetAnimator.start();
